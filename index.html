@@ -9,21 +9,53 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Krosciculus">
 <script>
+/* Mises à jour : le service worker (sw.js) détecte les nouvelles versions du jeu ;
+   cette page déclenche la vérification et affiche la barre « Nouvelle version disponible ». */
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
-  navigator.serviceWorker.addEventListener('message', function (e) {
-    if (!e.data || e.data.type !== 'UPDATE_READY' || document.getElementById('upd-bar')) return;
+  var swReg = null, lastCheck = 0, hadController = !!navigator.serviceWorker.controller;
+  var swSend = function (msg) {
+    navigator.serviceWorker.ready.then(function (reg) { if (reg.active) reg.active.postMessage(msg); }).catch(function () {});
+  };
+  var checkUpdate = function (force) {
+    var now = Date.now();
+    if (!force && now - lastCheck < 120000) return;
+    lastCheck = now;
+    if (swReg) swReg.update().catch(function () {});
+    swSend({ type: 'CHECK_UPDATE' });
+  };
+  var showUpdateBar = function () {
+    if (!document.body) { document.addEventListener('DOMContentLoaded', showUpdateBar); return; }
+    if (document.getElementById('upd-bar')) return;
     var bar = document.createElement('div'); bar.id = 'upd-bar';
     bar.style.cssText = 'position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:99999;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#213038;border:1px solid #e3ac3d;color:#ece7da;font:700 14px Nunito,system-ui,sans-serif;box-shadow:0 6px 24px #000a';
     var t = document.createElement('span'); t.style.flex = '1'; t.textContent = 'Nouvelle version disponible';
     var go = document.createElement('button'); go.textContent = 'Mettre à jour';
     go.style.cssText = 'border:0;border-radius:8px;padding:8px 12px;background:#e3ac3d;color:#2a1d04;font:800 14px Nunito,system-ui,sans-serif';
-    go.onclick = function () { location.reload(); };
+    go.onclick = function () {
+      go.disabled = true; go.textContent = 'Mise à jour…';
+      swSend({ type: 'APPLY_UPDATE' });
+      setTimeout(function () { location.reload(); }, 5000); // sécurité si le service worker ne répond pas
+    };
     var no = document.createElement('button'); no.textContent = 'Plus tard';
     no.style.cssText = 'border:0;background:none;color:#a3b0b4;font:700 13px Nunito,system-ui,sans-serif';
     no.onclick = function () { bar.remove(); };
     bar.append(t, go, no); document.body.appendChild(bar);
+  };
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      .then(function (reg) { swReg = reg; checkUpdate(true); })
+      .catch(function () {});
   });
+  // Retour au premier plan (très fréquent pour une PWA mobile) ou retour du réseau : on revérifie.
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') checkUpdate(false); });
+  window.addEventListener('online', function () { checkUpdate(true); });
+  navigator.serviceWorker.addEventListener('message', function (e) {
+    var type = e.data && e.data.type;
+    if (type === 'UPDATE_READY') showUpdateBar();
+    else if (type === 'UPDATE_APPLIED') location.reload();
+  });
+  // Nouveau sw.js activé pendant que le jeu est ouvert : proposer aussi le rechargement.
+  navigator.serviceWorker.addEventListener('controllerchange', function () { if (hadController) showUpdateBar(); });
 }
 </script>
 <meta name="mobile-web-app-capable" content="yes">
