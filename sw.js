@@ -1,6 +1,6 @@
 /* Service worker Krosciculus : jeu jouable hors ligne.
    Pour forcer la mise à jour chez tous les joueurs après une nouvelle version, changer VERSION. */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'krosciculus-' + VERSION;
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './maskable-512.png', './apple-touch-icon.png'];
 
@@ -25,8 +25,16 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(caches.open(CACHE).then(async (cache) => {
     const key = req.mode === 'navigate' ? './index.html' : req;
     const cached = await cache.match(key);
-    const refresh = fetch(req).then((res) => {
-      if (res && (res.ok || res.type === 'opaque')) cache.put(key, res.clone());
+    const sig = (r) => r && r.headers && (r.headers.get('etag') || r.headers.get('last-modified') || r.headers.get('content-length'));
+    const refresh = fetch(req).then(async (res) => {
+      if (res && (res.ok || res.type === 'opaque')) {
+        const changed = req.mode === 'navigate' && cached && sig(cached) && sig(res) && sig(cached) !== sig(res);
+        await cache.put(key, res.clone());
+        if (changed) { // nouvelle version du jeu récupérée : prévenir la page
+          const all = await self.clients.matchAll({ type: 'window' });
+          all.forEach((c) => c.postMessage({ type: 'UPDATE_READY' }));
+        }
+      }
       return res;
     }).catch(() => null);
     if (cached) { e.waitUntil(refresh); return cached; }
