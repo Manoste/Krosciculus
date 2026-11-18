@@ -584,6 +584,13 @@ div.tile { cursor: default; }
 
 /* collection et boosters */
 .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+/* Collection : cartes chargées par lots (voir collectionTab). Pas d'animation infinie sur des centaines de vignettes, et recalculs de mise en page isolés par carte. */
+.collection-grid .tile { contain: layout style; }
+.collection-grid .rayon .cv-bg::after { animation: none; background-position: 60% 0; }
+.collection-grid .tile.halo-rayon, .collection-grid .tile.halo-archi { animation: none; }
+.grid-sentinel { grid-column: 1 / -1; height: 1px; }
+.collection-search { display: block; width: 100%; box-sizing: border-box; margin: 8px 0; padding: 9px 12px; border-radius: 10px; border: 1px solid #ffffff30; background: #0b1114; color: #fff; font: inherit; font-size: 15px; }
+.collection-search:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
 
 .pack { position: relative; width: 156px; aspect-ratio: 156 / 240; transform: rotate(-2deg); filter: drop-shadow(0 10px 14px rgba(0,0,0,0.55)); }
 .pack-foil {
@@ -2004,14 +2011,14 @@ div.tile { cursor: default; }
       id: 'cra',
       name: 'Crâ',
       image: 'img/cra.png',
-      text: 'Le Joueur possède 10 AT, 30 % de CC et peut frapper 1 fois par tour comme un monstre (touchez-le pour agir). Il peut s’équiper de 2 équipements, comme un monstre.',
+      text: 'Le Joueur possède 10 AT, 30 % de CC de base et peut frapper 1 fois par tour comme un monstre (touchez-le pour agir). Il peut s’équiper de 2 équipements, comme un monstre.',
       passive: { hero: { at: 10, cc: 30 } },
     },
     roublard: {
       id: 'roublard',
       name: 'Roublard',
       image: 'img/roublard.png',
-      text: 'Chaque monstre invoqué possède un Combo égal à son coût en PA +2 (6 PA \u2192 Combo 8). Au début de chaque tour, vos monstres sur le board gagnent +1 Combo (15 max par monstre). Quand un monstre meurt, il inflige 1 dégât par niveau de Combo à tous les ennemis (en 1 seule ligne, dégâts indirects).',
+      text: 'Chaque monstre invoqué possède un Combo égal à son coût en PA +2 (6 PA \u2192 Combo 8). Au début de chaque tour, vos monstres sur le board gagnent +1 Combo (15 max par monstre). Quand un monstre meurt, il inflige 1 dégât par niveau de Combo à tous les ennemis (en 1 seule ligne, dégâts indirects, ne profite pas des DO).',
       passive: { combo: { max: 15, gain: 1, start: 2 } },
     },
     ouginak: {
@@ -7792,10 +7799,12 @@ div.tile { cursor: default; }
       /** Aperçu du recyclage en masse : { cards: cartes concernées, copies: exemplaires vendus, kamas: gain }. */
       bulkRecyclable() {
         const list = bulkExcess();
+        const reduced = recycleReduced(); // calculé une seule fois (et non une fois par carte)
+        const price = (id) => (reduced ? Math.floor(ECONOMY.sellPrice[CARDS[id].rarity] * ECONOMY.recycleCollectionFactor) : ECONOMY.sellPrice[CARDS[id].rarity]);
         return {
           cards: list.length,
           copies: list.reduce((t, [, n]) => t + n, 0),
-          kamas: list.reduce((t, [id, n]) => t + n * recyclePrice(id), 0),
+          kamas: list.reduce((t, [id, n]) => t + n * price(id), 0),
         };
       },
       deckStatus() {
@@ -8469,6 +8478,7 @@ div.tile { cursor: default; }
       s.pendingBluff = null; // Bluff en attente de réponse : { caster, victim, secret, shown, amount }
       s.players.forEach((p) => {
         p.pa = this.maxPa(p); // Dofus Ocre : +1 PA dès le départ
+        if (p.hero) p.hero.cc = this.classOf(p).passive.hero.cc + this.dofusSum(p, 'baseCrit') + this.dofusCc(p) + (this.classOf(p).passive.ccBonus || 0); // Crâ : 30 % = CC de base de l'attaque du Joueur (à la place des 20 % des monstres), les bonus de CC de base s'y ajoutent
         const hp = this.dofusSum(p, 'playerHp') + this.dofusSetSum(p, 'hp') + (this.classOf(p).passive.playerHp || 0); // + Steamer : +50 PV; // Dofawa : +1 PV ; Pastanoplie : +100 PV
         p.maxHp += hp; p.hp += hp;
       });
@@ -13141,10 +13151,10 @@ div.tile { cursor: default; }
         this.emit(events, { type: 'info', key: tm(b), text: CARDS[b.cardId].name + ' · Boom : ' + bd + ' dégâts à tous les ennemis' });
         for (const x of foe.board.slice()) if (this.state.winner === null && x.hp > 0 && foe.board.includes(x)) this.dealDamage({ kind: 'monster', m: x, owner: foe }, bd, {}, events);
       }
-      if (m.combo > 0 && !(m.echo > 0) && this.state.winner === null) { // Roublard : à sa mort, 1 dégât par niveau de Combo à tous les ennemis, en 1 ligne (dégâts indirects : DO et %DF du Joueur)
+      if (m.combo > 0 && !(m.echo > 0) && this.state.winner === null) { // Roublard : à sa mort, 1 dégât par niveau de Combo à tous les ennemis, en 1 ligne (dégâts indirects : sans les DO ; %DF du Joueur appliqué)
         const foeC = this.state.players[1 - owner.idx];
         this.emit(events, { type: 'info', key: tm(m), text: CARDS[m.cardId].name + ' \u00b7 Combo ' + m.combo + ' : ' + m.combo + ' dégâts indirects à tous les ennemis' });
-        for (const x of foeC.board.slice()) if (this.state.winner === null && x.hp > 0 && foeC.board.includes(x)) this.dealDamage({ kind: 'monster', m: x, owner: foeC }, m.combo, { pierce: true, poison: true, indirectSrc: owner }, events);
+        for (const x of foeC.board.slice()) if (this.state.winner === null && x.hp > 0 && foeC.board.includes(x)) this.dealDamage({ kind: 'monster', m: x, owner: foeC }, m.combo, { pierce: true, poison: true, noDoAdd: true, indirectSrc: owner }, events); // ne profite pas des DO
       }
       const sumPing = this.classOf(owner).passive.summonDeathPing || 0; // Sadida : la mort d'une invocation alliée blesse tous les ennemis (passe toutes les réductions, sans DO)
       if (sumPing > 0 && m.token && !m.foePlanted && this.state.winner === null) {
@@ -17877,6 +17887,9 @@ div.tile { cursor: default; }
     tab: 'match',
     collectionFilter: 'all',
     collectionRarity: 'all',
+    collectionOwnedOnly: false, // n'afficher que les cartes possédées
+    collectionSearch: '',       // recherche par nom
+    collectionShown: 0,  // cartes de la collection déjà chargées (chargement par lots)
     deckFilter: 'all',
     deckRarity: 'all',
     pack: null,          // cartes de la dernière ouverture : [{ id, isNew, owned }]
@@ -17942,8 +17955,9 @@ div.tile { cursor: default; }
   /** Tri : par type (Dofus en tête, puis l'ordre des types), puis par rareté (de la plus courante à la plus rare), puis par coût (du moins cher au plus cher) ; tri stable, l'ordre du catalogue est conservé pour le reste. */
   const TYPE_ORDER = ['dofus'].concat(Object.keys(TYPE_LABEL).filter((t) => t !== 'dofus'));
   const RARITY_ORDER = Object.keys(RARITY);
-  const cardIds = () => FG.catalogIds().sort((a, b) =>
-    (TYPE_ORDER.indexOf(CARDS[a].type) - TYPE_ORDER.indexOf(CARDS[b].type)) || (RARITY_ORDER.indexOf(CARDS[a].rarity) - RARITY_ORDER.indexOf(CARDS[b].rarity)) || (FG.minCost(CARDS[a]) - FG.minCost(CARDS[b])));
+  let sortedCardIds = null; // le catalogue est fixe : tri calculé une seule fois
+  const cardIds = () => sortedCardIds || (sortedCardIds = FG.catalogIds().sort((a, b) =>
+    (TYPE_ORDER.indexOf(CARDS[a].type) - TYPE_ORDER.indexOf(CARDS[b].type)) || (RARITY_ORDER.indexOf(CARDS[a].rarity) - RARITY_ORDER.indexOf(CARDS[b].rarity)) || (FG.minCost(CARDS[a]) - FG.minCost(CARDS[b]))));
   const RARITY_FILTERS = [['all', 'Toutes']].concat(RARITY_ORDER.map((r) => [r, RARITY[r].label]));
   /** Filtres de type ET de rareté (deux rangées de pastilles). */
   function filterBars(typeCur, rarCur, onType, onRarity, typeFilters) {
@@ -18103,18 +18117,85 @@ div.tile { cursor: default; }
   }
 
   /* ---------- onglet Collection ---------- */
+  const COLLECTION_CHUNK = 45; // cartes ajoutées à chaque lot (multiple de 3 : lignes complètes)
+  let collectionObserver = null;
+  function stopCollectionLoader() { if (collectionObserver) { collectionObserver.disconnect(); collectionObserver = null; } }
+
+  /** Grille de la collection construite par lots : seules les cartes proches de l'écran existent dans le DOM, les suivantes arrivent au défilement. */
+  function collectionGrid(ids) {
+    stopCollectionLoader();
+    const grid = h('div', { class: 'grid collection-grid' });
+    let next = 0;
+    const addUpTo = (end) => {
+      end = Math.min(ids.length, end);
+      const frag = document.createDocumentFragment();
+      FG.plain(() => { // un seul passage « apparences d'origine » pour tout le lot
+        for (; next < end; next++) { const id = ids[next]; frag.appendChild(CardView.tile(id, { count: Save.owned(id), onclick: () => openSheet(id) })); }
+      });
+      view.collectionShown = next;
+      return frag;
+    };
+    const first = addUpTo(Math.max(COLLECTION_CHUNK, view.collectionShown)); // un rendu après vente garde les cartes déjà chargées
+    grid.appendChild(first);
+    if (next < ids.length) {
+      if (typeof IntersectionObserver === 'undefined') { grid.appendChild(addUpTo(ids.length)); return grid; }
+      const sentinel = h('div', { class: 'grid-sentinel', 'aria-hidden': 'true' });
+      grid.appendChild(sentinel);
+      collectionObserver = new IntersectionObserver((entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        grid.insertBefore(addUpTo(next + COLLECTION_CHUNK), sentinel);
+        collectionObserver.unobserve(sentinel);
+        if (next >= ids.length) { sentinel.remove(); stopCollectionLoader(); } else collectionObserver.observe(sentinel); // ré-observe : déclenche un nouveau test si la sentinelle est encore visible
+      }, { rootMargin: '800px 0px' });
+      collectionObserver.observe(sentinel);
+    }
+    return grid;
+  }
+
+  /** Texte sans accents ni majuscules, pour la recherche par nom. */
+  const fold = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  let foldedNames = null; // nom (apparence d'origine) normalisé de chaque carte, calculé une seule fois
+  function foldedName(id) {
+    if (!foldedNames) { foldedNames = {}; FG.plain(() => { for (const k of Object.keys(CARDS)) foldedNames[k] = fold(CARDS[k].name); }); }
+    return foldedNames[id] || '';
+  }
+
+  /** Cartes de la collection selon les quatre filtres (type, rareté, possédées, nom), cumulables. */
+  function collectionIds() {
+    const withArchis = cardIds().flatMap((id) => [id].concat(FG.archiIdOf(id) || [], FG.rayonIdOf(id) || [])); // l'Archimonstre (ou le rayonnant) suit sa carte
+    const q = fold(view.collectionSearch);
+    return withArchis.filter((id) => (view.collectionFilter === 'all' || (view.collectionFilter === 'archi' ? !!CARDS[id].archi : view.collectionFilter === 'rayon' ? !!CARDS[id].rayon : CARDS[id].type === view.collectionFilter))
+      && (view.collectionRarity === 'all' || CARDS[id].rarity === view.collectionRarity)
+      && (!view.collectionOwnedOnly || Save.owned(id) > 0)
+      && (!q || foldedName(id).includes(q)));
+  }
+
+  /** Remplace seulement le compteur et la grille (la saisie dans la recherche garde donc le focus). */
+  function refreshCollectionResults() {
+    const ids = collectionIds(), count = document.querySelector('.collection-count'), old = document.querySelector('.collection-grid');
+    if (!count || !old) { render(); return; }
+    view.collectionShown = 0;
+    count.textContent = plural(ids.length, 'carte');
+    old.replaceWith(collectionGrid(ids));
+  }
+
   function collectionTab() {
     const totals = Save.collectionTotals();
-    const withArchis = cardIds().flatMap((id) => [id].concat(FG.archiIdOf(id) || [], FG.rayonIdOf(id) || [])); // l'Archimonstre (ou le rayonnant) suit sa carte
-    const ids = withArchis.filter((id) => (view.collectionFilter === 'all' || (view.collectionFilter === 'archi' ? !!CARDS[id].archi : view.collectionFilter === 'rayon' ? !!CARDS[id].rayon : CARDS[id].type === view.collectionFilter)) && (view.collectionRarity === 'all' || CARDS[id].rarity === view.collectionRarity));
+    const ids = collectionIds();
+    let timer = null;
+    const search = h('input', { class: 'collection-search', type: 'search', placeholder: 'Rechercher une carte par son nom', 'aria-label': 'Rechercher une carte par son nom', autocomplete: 'off', spellcheck: 'false', value: view.collectionSearch,
+      oninput: (e) => { view.collectionSearch = e.target.value; clearTimeout(timer); timer = setTimeout(refreshCollectionResults, 120); } });
     return [
       h('section', { class: 'card-box' },
         h('h2', null, 'Collection'),
         h('p', null, totals.distinct + ' / ' + totals.catalog + ' cartes différentes · ' + plural(totals.copies, 'exemplaire') + ' au total.'),
         bulkRecycleBox(),
-        ...filterBars(view.collectionFilter, view.collectionRarity, (f) => { view.collectionFilter = f; render(); }, (r) => { view.collectionRarity = r; render(); }, COLLECTION_FILTERS),
-        h('p', { class: 'deck-line', role: 'status', 'aria-live': 'polite' }, plural(ids.length, 'carte'))), // cartes affichées : suit les filtres
-      h('div', { class: 'grid' }, ids.map((id) => plainTile(id, { count: Save.owned(id), onclick: () => openSheet(id) }))),
+        search,
+        ...filterBars(view.collectionFilter, view.collectionRarity, (f) => { view.collectionFilter = f; view.collectionShown = 0; render(); }, (r) => { view.collectionRarity = r; view.collectionShown = 0; render(); }, COLLECTION_FILTERS),
+        h('div', { class: 'chips', role: 'group', 'aria-label': 'Filtrer par possession' },
+          h('button', { class: 'chip', type: 'button', 'aria-pressed': String(view.collectionOwnedOnly), onclick: () => { view.collectionOwnedOnly = !view.collectionOwnedOnly; view.collectionShown = 0; render(); } }, 'Possédées uniquement')),
+        h('p', { class: 'deck-line collection-count', role: 'status', 'aria-live': 'polite' }, plural(ids.length, 'carte'))), // cartes affichées : suit les filtres
+      collectionGrid(ids),
     ];
   }
 
@@ -18802,7 +18883,7 @@ div.tile { cursor: default; }
 
   function go(tab) {
     if (!BUILDERS[tab]) return;
-    if (view.tab !== tab) { view.message = ''; view.codeMessage = ''; }
+    if (view.tab !== tab) { view.message = ''; view.codeMessage = ''; view.collectionShown = 0; }
     view.tab = tab;
     view.resetArmed = false;
     view.recycleArmed = false;
@@ -18813,6 +18894,7 @@ div.tile { cursor: default; }
   function render() {
     $('kamas-pill').textContent = Save.kamas() + ' Kamas';
     for (const btn of $('hub-nav').children) btn.setAttribute('aria-current', btn.dataset.tab === view.tab ? 'page' : 'false');
+    if (view.tab !== 'collection') stopCollectionLoader();
     const nodes = BUILDERS[view.tab]().filter(Boolean);
     $('hub-body').dataset.tab = view.tab;
     $('hub-body').replaceChildren(...nodes);
