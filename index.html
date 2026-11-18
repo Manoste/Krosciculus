@@ -389,6 +389,7 @@ div.tile { cursor: default; }
 .jw .jl { fill: none; stroke: #fff; stroke-opacity: 0.55; stroke-width: 0.45; }
 .jw .jh { fill: #fff; fill-opacity: 0.95; }
 .do-up { color: #ff9a3c; font-weight: 800; text-shadow: 0 0 6px #ff9a3c66; }
+.crit-up { color: #ffe14a; font-weight: 800; text-shadow: 0 0 6px #ffe14a66; }
 .dur-up { color: #5fe06a; font-weight: 800; text-shadow: 0 0 6px #5fe06a66; }
 .tach-up { color: #36e5d3; font-weight: 800; text-shadow: 0 0 6px #36e5d366; }
 .tile-count { position: absolute; z-index: 9; top: 31px; left: 4px; font-size: 12px; font-weight: 800; color: #fff; background: #000c; border-radius: 8px; padding: 0 5px; }
@@ -3447,8 +3448,8 @@ div.tile { cursor: default; }
     /* ---------------- Lot 30 : Tromporelle ---------------- */
     tromporelle: {
       type: 'monster', noHpBonus: true, rarity: 'rare', name: 'Tromporelle', shortName: 'Tromporelle', cost: 4, hp: 20, at: 7, image: 'img/tromporelle.png',
-      passive: { name: 'Trompettes de la mort', type: 'horn', turns: 2, cooldown: 3, cc: 30, doCrit: 8,
-        text: 'S\u2019active seule en début de tour : +30 % CC et +8 DoCrit à tous vos monstres (lui compris) pendant 2 tours. Relance : 3 tours.' },
+      passive: { name: 'Trompettes de la mort', type: 'horn', turns: 2, cooldown: 3, cc: 10, doCrit: 3,
+        text: 'S\u2019active seule en début de tour : +10 % CC et +3 DoCrit à tous vos monstres (lui compris) pendant 2 tours. Relance : 3 tours.' },
       actions: [
         { name: 'Baguettereled', kind: 'attack', target: 'enemy', critDouble: true,
           text: 'Inflige 1 + 2 + 100 % de l\u2019AT à la cible. En critique : dégâts ×2 au lieu de ×1,5 (×3 pour l\u2019Ecaflip).',
@@ -3493,7 +3494,7 @@ div.tile { cursor: default; }
     },
     perku: {
       type: 'monster', noHpBonus: true, rarity: 'rare', name: 'Perkû', shortName: 'Perkû', cost: 4, hp: 18, at: 12, image: 'img/perku.png',
-      passive: { name: 'Perkrit', type: 'perkrit', text: 'Faire un coup critique lui donne +1 attaque pour le tour.' },
+      passive: { name: 'Perkrit', type: 'perkrit', text: 'Faire un coup critique lui donne +1 attaque pour le tour (1 activation par tour maximum).' },
       actions: [
         { name: 'Perkussion', kind: 'attack', target: 'enemy',
           text: 'Inflige 120 % de l\u2019AT.',
@@ -9571,6 +9572,111 @@ div.tile { cursor: default; }
       return this.dofusSum(owner, 'damageBonus') + (source ? this.equipStat(source, 'do', owner) + (this.state.round % 2 === 0 ? this.equipPassiveSum(source, 'evenDo') : 0) : 0) + this.richesBonus({ owner, source });
     }
 
+    /** Prévisualisation des dégâts (fiche d'un sort ou d'un monstre) : reprend le calcul réel de resolveEffectsInner / dealDamage
+     *  (DO, DoCrit, multiplicateur de critique, % dégâts de sorts, % dégâts indirects, %DF, Tacheté, Trompettes de la mort…),
+     *  sans connaître la cible (résistances, armures et boucliers ne sont pas comptés).
+     *  source : monstre lanceur (null pour un sort) ; opts : { monster, at, hp (monstre en main), critDouble }.
+     *  Renvoie une liste alignée sur `effects` : { n (normal), c (critique), sn, sc (adjacents) } ou null (effet non prévisualisable). */
+    previewDamage(owner, source, effects0, opts) {
+      if (!owner || !effects0 || !effects0.length) return null;
+      opts = opts || {};
+      let effects = effects0;
+      const plus = this.plusOneOf(owner);
+      if (plus > 0) effects = effects.map((e) => plusOneEffect(e, plus));
+      const durPlus = this.durOf(owner);
+      if (durPlus > 0) effects = effects.map((e) => durEffect(e, durPlus));
+      const isMon = !!source || !!opts.monster;
+      const atVal = source ? source.at : opts.at;
+      const hpVal = source ? source.hp : opts.hp;
+      const maxHpVal = source ? source.maxHp : opts.hp;
+      const foeBoard = this.state.players[1 - owner.idx].board;
+      const DMG = ['damage', 'damageAll', 'damagePlayer'];
+      const BLOCK = ['pctRange', 'pctPerStack', 'stackGrow', 'chargeBonus', 'targetHpPct', 'missingStep', 'missingPct', 'erodedPct', 'rightPct', 'playerPct', 'plusPerDead', 'doubleBelow', 'doubleWeaker', 'missBoost', 'ifPoisoned', 'growPerCast', 'perEnemy', 'killOnCrit', 'killChance', 'useDf'];
+      const usable = (e) => {
+        if (!DMG.includes(e.type) && e.type !== 'poison') return false;
+        if (BLOCK.some((k) => e[k])) return false;
+        if (e.amount === 'AT') { if (!isMon || !(atVal >= 0)) return false; }
+        else if (e.amount === 'HP') { if (!isMon || e.type !== 'damage' || !(hpVal >= 0)) return false; }
+        else if (e.amount === 'MISSING') { if (!isMon || e.type !== 'damageAll') return false; }
+        else if (typeof e.amount !== 'number') return false;
+        if ((e.selfMissingPct || e.selfHpPct || e.selfMaxHpPct) && !isMon) return false;
+        if (e.ifBoardFull && this.troopCount(owner) < this.maxBoardOf(owner)) return false;
+        return true;
+      };
+      const run = (crit) => {
+        const mult = crit ? (opts.critDouble ? (this.critMultiplierOf(owner) >= 2 ? 3 : 2) : this.critMultiplierOf(owner) + (source && source.boost ? source.boost.crit : 0)) : 1;
+        const scale = (v) => Math.round(v * mult);
+        const doBuff = effects.reduce((t, e) => t + (e.type === 'doBuff' ? e.amount : 0), 0); // Épée Divine : DO en place avant les dégâts du même sort
+        const bonus = this.dofusSum(owner, 'damageBonus') + (source ? this.equipStat(source, 'do', owner) + (source.hourDo || 0) : 0) + this.richesBonus({ owner, source }) + doBuff;
+        const hornDoCrit = crit && source ? owner.board.reduce((t, a) => t + (a.horn ? passiveOf(a, 'horn')?.doCrit || 0 : 0), 0) : 0;
+        const critBonus = crit ? this.dofusSum(owner, 'critDamage') + (source ? this.equipStat(source, 'docrit', owner) + (source.docritTemp ? source.docritTemp.amount : 0) : 0) + hornDoCrit : 0;
+        const spellPct = isMon ? 0 : this.dofusSum(owner, 'spellPct') + (this.state.cadran && this.state.cadran.hour === 15 ? 30 : 0);
+        const amp = (v) => (spellPct > 0 ? Math.ceil((v * (100 + spellPct)) / 100) : v);
+        let opening = !isMon && owner.spellBoost > 0 && effects.some((e) => e.boosted) ? owner.spellBoost : 0;
+        const strike = (value, allowZero) => {
+          if (!(value > 0) && !(allowZero && value === 0)) return 0;
+          const extra = opening; opening = 0;
+          return scale(value) + bonus + critBonus + extra;
+        };
+        const baseOf = (e) => {
+          const atBase = e.amount === 'AT' ? atVal : e.amount === 'HP' ? hpVal : e.amount;
+          if (e.type === 'damageAll') {
+            const b = e.amount === 'AT' ? atVal : e.amount === 'MISSING' ? Math.round(Math.max(0, maxHpVal - hpVal) * (e.pct || 100) / 100) : e.amount;
+            return b + (e.selfMissingPct && isMon ? Math.floor(((maxHpVal - hpVal) * e.selfMissingPct) / 100) : 0);
+          }
+          if (e.type === 'poison') return e.amount === 'AT' ? (e.pct ? pctOf(atVal, e.pct) : atVal) : e.amount;
+          const pc = typeof e.amount === 'string' && e.pct ? (e.ceilPct ? (atBase > 0 ? Math.max(1, Math.ceil((atBase * e.pct) / 100)) : 0) : pctOf(atBase, e.pct)) : atBase;
+          return pc + (e.flat || 0)
+            + (e.selfMissingPct && isMon ? Math.floor(((maxHpVal - hpVal) * e.selfMissingPct) / 100) : 0)
+            + (e.selfHpPct && isMon ? Math.floor((hpVal * e.selfHpPct) / 100) : 0)
+            + (e.selfMaxHpPct && isMon ? Math.max(1, Math.floor((maxHpVal * e.selfMaxHpPct) / 100)) : 0)
+            + (e.plusPerEnemy ? e.plusPerEnemy * foeBoard.length : 0);
+        };
+        const extraLine = new Map(); // Tropifus / Cadran 15 h : +N % sur la somme des lignes (surplus ajouté à la dernière ligne de chaque groupe)
+        if (spellPct > 0) {
+          const before = opening; const groups = {};
+          for (const e of effects) {
+            if (!DMG.includes(e.type) || !usable(e) || !(typeof e.amount === 'number' && e.amount > 0)) continue;
+            const g = groups[e.type] || (groups[e.type] = { total: 0, last: null });
+            g.total += strike(baseOf(e)); g.last = e;
+          }
+          for (const g of Object.values(groups)) extraLine.set(g.last, amp(g.total) - g.total);
+          opening = before;
+        }
+        const ipct = this.indirectOf(owner);
+        const df = this.dfOf(owner, source);
+        const fin = (amount, indirect) => {
+          if (amount <= 0) return 0;
+          if (indirect && ipct) amount = Math.floor((amount * (100 + ipct)) / 100);
+          if (df) amount = Math.max(0, Math.floor((amount * (100 + df)) / 100));
+          return Math.max(0, amount);
+        };
+        return effects.map((e) => {
+          if (!usable(e)) return null;
+          if (e.type === 'poison') { // le poison de sort a ses DO à la pose ; % indirects puis %DF à chaque tick
+            const b = baseOf(e);
+            if (!(b > 0)) return null;
+            return { v: fin(amp(scale(b) + bonus), true), s: 0 };
+          }
+          if (e.type === 'damagePlayer') { const v = fin(strike(baseOf(e)) + (extraLine.get(e) || 0), true); return v > 0 ? { v, s: 0 } : null; }
+          const b = baseOf(e);
+          const line = strike(b, typeof e.amount === 'string') + (extraLine.get(e) || 0);
+          if (!(line > 0)) return null;
+          let sp = 0;
+          if (e.type === 'damage') {
+            if (e.adjacentFull) sp = fin(line, false);
+            else {
+              const sb = e.splashPct ? pctOf(typeof e.amount === 'string' ? (e.amount === 'AT' ? atVal : hpVal) : e.amount, e.splashPct) : (e.splash || 0);
+              if (sb > 0) sp = fin(strike(sb), false);
+            }
+          }
+          return { v: fin(line, false), s: sp };
+        });
+      };
+      const nrm = run(false), crt = run(true);
+      return effects.map((e, i) => (nrm[i] && crt[i] ? { n: nrm[i].v, c: crt[i].v, sn: nrm[i].s, sc: crt[i].s } : null));
+    }
+
     /** Dommages en plus par ligne : monstres alliés d'un Coffre des Forgerons (+DO) et DO permanent du joueur. */
     richesBonus(ctx) {
       let bonus = ctx.owner.doBonus + this.setDo(ctx.owner) + (ctx.owner.doTemp ? ctx.owner.doTemp.amount : 0);
@@ -9931,7 +10037,8 @@ div.tile { cursor: default; }
           this.emit(events, { type: 'info', text: CARDS[m.cardId].name + ' : Araknamu est détruit' });
         }
       }
-      if (crit && def.kind === 'attack' && !m.doomed && this.findMonster(m.uid) && passiveOf(m, 'perkrit')) { // Perkrit : un critique = +1 attaque pour le tour
+      if (crit && def.kind === 'attack' && !m.doomed && this.findMonster(m.uid) && passiveOf(m, 'perkrit') && !m.perkritUsed) { // Perkrit : un critique = +1 attaque pour le tour (1 fois par tour max)
+        m.perkritUsed = true;
         m.extraLeft += 1;
         this.emit(events, { type: 'buff', key: tm(m), amount: 1, text: CARDS[m.cardId].name + ' : Perkrit, +1 attaque ce tour-ci' });
       }
@@ -13986,6 +14093,7 @@ div.tile { cursor: default; }
       }
       p.board.forEach((m) => { // un monstre étourdi saute ce tour
         m.acted = false;
+        m.perkritUsed = false; // Perkrit : 1 activation par tour
         m.played = false; m.slept = false;
         m.attacked = false;
         m.stunned = m.stunPending;
