@@ -318,6 +318,8 @@ div.tile { cursor: default; }
 .card.rayon, .tile.rayon { border-color: #ecdca8; box-shadow: 0 0 0 1px #000c, 0 0 0 2px #f6ebc6, 0 0 12px 1px #f6ebc6aa, inset 0 0 0 2px var(--rar, #fff7d8), inset 0 0 12px #000b; } /* infime liseré intérieur de la couleur de rareté */
 /* Liseré de rareté : une ombre « inset » passe sous l'illustration et reste invisible ; on le dessine donc au-dessus (ouvertures, collection), y compris pour les Légendaires et Mythiques rayonnants. */
 .tile.rayon::after { content: ''; position: absolute; inset: 0; z-index: 7; border: 2px solid var(--rar, #fff7d8); border-radius: 10px; pointer-events: none; box-shadow: inset 0 0 0 1px #0007; }
+/* Rayonnants : les gemmes passent au premier plan (au-dessus du liseré) et se centrent sur le fin liseré de rareté (intérieur), pas sur le cadre doré. */
+.rayon .cv-gems { z-index: 9; right: -5.8px; }
 .rayon .cv-bg::after { background: linear-gradient(115deg, transparent 32%, #fff4c8aa 50%, transparent 68%) 0 0 / 260% 100%; animation: rayonSheen 3.4s linear infinite; }
 .rayon .cv-bg::before { background: radial-gradient(#fff6cf 1px, transparent 1.7px) 0 0 / 11px 11px; opacity: 0.75; }
 @keyframes rayonSheen { from { background-position: 160% 0; } to { background-position: -60% 0; } }
@@ -1121,7 +1123,20 @@ div.tile { cursor: default; }
       <button id="patchnotes-close" class="notepad-close" type="button" aria-label="Fermer">✕</button>
     </div>
     <div class="notepad-body">
-      <h3>Patch v0.11</h3>
+      <h3>Patch v0.12</h3>
+      <ul>
+        <li><b>Les Rayonnants débarquent en jeu !</b>
+          <ul>
+            <li>Déjà 145 équipements Rayonnants.</li>
+            <li>Et bien sûr plus de 30 Dofus Rayonnants !</li>
+          </ul>
+        </li>
+        <li>Ajout de +20 Succès.</li>
+        <li>Ajout de +30 Archimonstres.</li>
+        <li>Animations d’ouverture de boosters.</li>
+        <li>Nouvel écran titre !</li>
+      </ul>
+      <h3>Précédemment : Patch v0.11</h3>
       <ul>
         <li><b>Le Son arrive en jeu !</b>
           <ul>
@@ -1134,7 +1149,7 @@ div.tile { cursor: default; }
         <li>+17 nouveaux Archimonstres.</li>
         <li>Équilibrage des Classes.</li>
       </ul>
-      <h3>Précédemment : Patch v0.10</h3>
+      <h3>Patch v0.10</h3>
       <ul>
         <li>Ajout de +18 Archimonstres.</li>
         <li>Ajout de +5 monstres.</li>
@@ -1912,8 +1927,8 @@ div.tile { cursor: default; }
       id: 'ecaflip',
       name: 'Ecaflip',
       image: 'img/ecaflip.png',
-      text: 'Chaque carte jouée a 10 % de chance de rendre son coût en PA. Vos coups critiques infligent 3 fois l\u2019AT au lieu de 1,5.',
-      passive: { refundChance: 10, critMultiplier: 3 },
+      text: 'Vos monstres et vos sorts gagnent +15 % de CC. Chaque carte jouée a 10 % de chance de vous faire piocher une carte au hasard dans le cimetière ennemi. Vos coups critiques infligent 2 fois l\u2019AT au lieu de 1,5.',
+      passive: { graveStealChance: 10, critMultiplier: 2, ccBonus: 15 },
     },
     zobal: {
       id: 'zobal',
@@ -2344,7 +2359,7 @@ div.tile { cursor: default; }
       ],
       actions: [
         { name: 'Foux ou rien', kind: 'attack', target: 'enemy', critDouble: true,
-          text: 'Inflige 4 fois 10 % de l\u2019AT (arrondi au supérieur) à la cible. Dégâts +1 % tous les 2 % de PV manquants du Kami. En critique : dégâts ×2 au lieu de ×1,5 (×4 pour l\u2019Ecaflip).',
+          text: 'Inflige 4 fois 10 % de l\u2019AT (arrondi au supérieur) à la cible. Dégâts +1 % tous les 2 % de PV manquants du Kami. En critique : dégâts ×2 au lieu de ×1,5 (×3 pour l\u2019Ecaflip).',
           effects: [1, 2, 3, 4].map(() => ({ type: 'damage', amount: 'AT', pct: 10, ceilPct: true, missBoost: { per: 2, gain: 1 } })) },
       ],
     },
@@ -3429,7 +3444,7 @@ div.tile { cursor: default; }
         text: 'S\u2019active seule en début de tour : +30 % CC et +8 DoCrit à tous vos monstres (lui compris) pendant 2 tours. Relance : 3 tours.' },
       actions: [
         { name: 'Baguettereled', kind: 'attack', target: 'enemy', critDouble: true,
-          text: 'Inflige 1 + 2 + 100 % de l\u2019AT à la cible. En critique : dégâts ×2 au lieu de ×1,5 (×4 pour l\u2019Ecaflip).',
+          text: 'Inflige 1 + 2 + 100 % de l\u2019AT à la cible. En critique : dégâts ×2 au lieu de ×1,5 (×3 pour l\u2019Ecaflip).',
           effects: [{ type: 'damage', amount: 1 }, { type: 'damage', amount: 2 }, { type: 'damage', amount: 'AT' }] },
       ],
     },
@@ -4394,7 +4409,7 @@ div.tile { cursor: default; }
     abraknydeancestrale: {
       type: 'boss', rarity: 'epique', name: 'Abraknyde Ancestrale', shortName: 'Abraknyde A.', cost: 5, hp: 120, at: 1, image: 'img/abraknyde-ancestrale.png',
       passive: { name: 'Branche paralysante', type: 'paPoison', perPa: 2, turns: 2, min: 1, max: 2,
-        text: 'Au début de votre tour, empoisonne 1 à 2 ennemis : 2 dégâts par PA utilisé par le Joueur adverse pendant 2 tours (profite des DO et du %DF, ignore DoCrit). Peut être critique : dégâts doublés (×4 pour l\u2019Ecaflip).' },
+        text: 'Au début de votre tour, empoisonne 1 à 2 ennemis : 2 dégâts par PA utilisé par le Joueur adverse pendant 2 tours (profite des DO et du %DF, ignore DoCrit). Peut être critique : dégâts doublés (×3 pour l\u2019Ecaflip).' },
       actions: [
         { name: 'Morsure Sylvestre', kind: 'attack', target: 'enemy',
           text: 'Inflige 100 % de l\u2019AT et vole 2 AT à la cible pendant 2 tours.',
@@ -4615,9 +4630,9 @@ div.tile { cursor: default; }
 
     domakuro: {
       type: 'dofus', rarity: 'legendaire', name: 'Domakuro', shortName: 'Domakuro', cost: 0, image: 'img/dofus-domakuro.png',
-      short: '+4 DoCrit',
-      text: 'Vos coups critiques infligent 4 dégâts de plus par ligne de dégâts.',
-      effect: { type: 'critDamage', amount: 4 },
+      short: '+3 DoCrit',
+      text: 'Vos coups critiques infligent 3 dégâts de plus par ligne de dégâts.',
+      effect: { type: 'critDamage', amount: 3 },
     },
     dorigami: {
       type: 'dofus', rarity: 'epique', name: 'Dorigami', shortName: 'Dorigami', cost: 0, image: 'img/dofus-dorigami.png',
@@ -4763,8 +4778,8 @@ div.tile { cursor: default; }
     kalyptus: {
       type: 'dofus', rarity: 'epique', name: 'Dofus Kalyptus', shortName: 'Kalyptus', cost: 0, image: 'img/dofus-kalyptus.png',
       short: '+15 % à toutes les probabilités (hors CC)',
-      text: 'Augmente de 15 % toutes vos probabilités (passif de l’Enutrof, Dés de la Chance, sorts et passifs de certains monstres…), à l’exception des coups critiques.\nCas particuliers :\n- Ecaflip : son passif gagne +10 % seulement (20 %)\n- Dofus Abyssal : son passif gagne +10 % seulement (40 %)\n- Enutrof : augmente aussi la chance de gagner un booster spécial (+15 %, soit 25 % au lieu de 10 %), mais n’augmente pas ses taux Légendaire et Mythique',
-      effect: { type: 'luck', amount: 15, special: 10 },
+      text: 'Augmente de 15 % toutes vos probabilités (passif de l’Enutrof, Dés de la Chance, sorts et passifs de certains monstres…), à l’exception des coups critiques.\nCas particuliers :\n- Ecaflip : son passif gagne +5 % seulement (15 %)\n- Dofus Abyssal : son passif gagne +10 % seulement (40 %)\n- Enutrof : augmente aussi la chance de gagner un booster spécial (+15 %, soit 25 % au lieu de 10 %), mais n’augmente pas ses taux Légendaire et Mythique',
+      effect: { type: 'luck', amount: 15, special: 10, eca: 5 },
     },
     abyssal: {
       type: 'dofus', rarity: 'rare', name: 'Dofus Abyssal', shortName: 'Abyssal', cost: 0, image: 'img/dofus-abyssal.png',
@@ -5520,8 +5535,8 @@ div.tile { cursor: default; }
     },
     anneaurn: {
       type: 'equipment', rarity: 'epique', name: 'Anneau du RN', cost: 0, image: 'img/anneau-rn.png',
-      short: '+20 % CC · +3 DoCrit',
-      stats: { cc: 20, docrit: 3 },
+      short: '+20 % CC · +2 DoCrit',
+      stats: { cc: 20, docrit: 2 },
       text: '',
     },
     anneaupiou: {
@@ -5802,8 +5817,8 @@ div.tile { cursor: default; }
     },
     bottes_will_kinson: {
       type: 'equipment', rarity: 'epique', name: 'Bottes du Will Kinson', cost: 0, image: 'img/bottes-will-kinson.png',
-      short: '+10 % CC · +5 DoCrit',
-      stats: { cc: 10, docrit: 5 },
+      short: '+10 % CC · +3 DoCrit',
+      stats: { cc: 10, docrit: 3 },
       text: '',
     },
     bottes_styx: {
@@ -5892,8 +5907,8 @@ div.tile { cursor: default; }
     },
     infernano: {
       type: 'equipment', rarity: 'rare', name: 'Infernano', cost: 0, image: 'img/infernano.png',
-      short: '+4 DoCrit',
-      stats: { docrit: 4 },
+      short: '+3 DoCrit',
+      stats: { docrit: 3 },
       text: '',
     },
     mandrano: {
@@ -6041,21 +6056,21 @@ div.tile { cursor: default; }
       type: 'equipment', rarity: 'epique', name: 'Épée du Granduk', cost: 0, image: 'img/epee-granduk.png',
       short: '+30 % CC · attaque critique ×2',
       stats: { cc: 30 },
-      text: 'Donne l\u2019attaque « Grandukul » : inflige 80 % puis 40 % de l\u2019AT. Un coup critique inflige ×2 au lieu de ×1,5 (×4 pour l\u2019Ecaflip). Relance : 2 tours.',
+      text: 'Donne l\u2019attaque « Grandukul » : inflige 80 % puis 40 % de l\u2019AT. Un coup critique inflige ×2 au lieu de ×1,5 (×3 pour l\u2019Ecaflip). Relance : 2 tours.',
       passive: { grantAction: { name: 'Grandukul', kind: 'attack', target: 'enemy', critDouble: true, cooldown: 2,
-        text: 'Inflige 80 % puis 40 % de l\u2019AT. Critique : ×2 au lieu de ×1,5 (×4 pour l\u2019Ecaflip). Relance : 2 tours.',
+        text: 'Inflige 80 % puis 40 % de l\u2019AT. Critique : ×2 au lieu de ×1,5 (×3 pour l\u2019Ecaflip). Relance : 2 tours.',
         effects: [{ type: 'damage', amount: 'AT', pct: 80 }, { type: 'damage', amount: 'AT', pct: 40 }] } },
     },
     ceinture_strigide: {
       type: 'equipment', rarity: 'legendaire', name: 'Ceinture du Strigide', cost: 0, image: 'img/ceinture-strigide.png',
-      short: '+20 % CC · +6 DoCrit',
-      stats: { cc: 20, docrit: 6 },
+      short: '+20 % CC · +4 DoCrit',
+      stats: { cc: 20, docrit: 4 },
       text: '',
     },
     amulette_strigide: {
       type: 'equipment', rarity: 'legendaire', name: 'Amulette du Strigide', cost: 0, image: 'img/amulette-strigide.png',
-      short: '+10 % CC · +8 DoCrit',
-      stats: { cc: 10, docrit: 8 },
+      short: '+10 % CC · +5 DoCrit',
+      stats: { cc: 10, docrit: 5 },
       text: '',
     },
     cape_hiculteur: {
@@ -6105,8 +6120,8 @@ div.tile { cursor: default; }
     },
     arc_gutentak: {
       type: 'equipment', rarity: 'epique', name: 'Arc de GutenTak', cost: 0, image: 'img/arc-gutentak.png',
-      short: '+10 % CC · +3 DoCrit · attaque vampirique',
-      stats: { cc: 10, docrit: 3 },
+      short: '+10 % CC · +2 DoCrit · attaque vampirique',
+      stats: { cc: 10, docrit: 2 },
       text: 'Donne l\u2019attaque « Guten Tak » : inflige 100 % de l\u2019AT +1 +1 de dégâts à la cible et récupère 50 % des dégâts infligés par les 2 dernières lignes. Relance : 2 tours.',
       passive: { grantAction: { name: 'Guten Tak', kind: 'attack', target: 'enemy', cooldown: 2,
         text: 'Inflige 100 % de l\u2019AT +1 +1 de dégâts et récupère 50 % des dégâts infligés par les 2 dernières lignes. Relance : 2 tours.',
@@ -6345,8 +6360,8 @@ div.tile { cursor: default; }
     },
     cape_fuji_givrefoux: {
       type: 'equipment', rarity: 'legendaire', name: 'Cape de la Fuji Givrefoux', cost: 0, image: 'img/cape-fuji-givrefoux.png',
-      short: '+1 PM · +10 % CC · +6 DoCrit · −7 PV',
-      stats: { pm: 1, cc: 10, docrit: 6, hp: -7 },
+      short: '+1 PM · +10 % CC · +4 DoCrit · −7 PV',
+      stats: { pm: 1, cc: 10, docrit: 4, hp: -7 },
       text: '',
     },
     cape_mansot_royal: {
@@ -6701,9 +6716,9 @@ div.tile { cursor: default; }
       items: ['anneau_korriandre', 'cape_korriandre', 'hache_korriandre'] },
     { id: 'gloursonne', name: 'Panoplie Gloursonne', sameMonster: true, alts: [['epee_gloursonne', 'bague_gloursonne'], ['epee_gloursonne', 'alliance_gloursonne']], altNote: 'l\u2019Épée Gloursonne remplace l\u2019une des deux pièces : Épée + Bague ou Épée + Alliance suffisent.', monsterStats: { do: 5 }, text: 'le porteur gagne +5 DO.',
       items: ['bague_gloursonne', 'alliance_gloursonne'] },
-    { id: 'strigide', name: 'Panoplie du Strigide', sameMonster: true, monsterAt: 3, monsterStats: { docrit: 4 }, text: 'le porteur gagne +3 AT et +4 DoCrit.',
+    { id: 'strigide', name: 'Panoplie du Strigide', sameMonster: true, monsterAt: 3, monsterStats: { docrit: 3 }, text: 'le porteur gagne +3 AT et +3 DoCrit.',
       items: ['ceinture_strigide', 'amulette_strigide'] },
-    { id: 'kolosso', name: 'Panoplie du Kolosso', sameMonster: true, monsterCc: -30, monsterStats: { do: 4, docrit: -50 }, text: 'le porteur gagne +4 DO, −30 % CC et −50 DoCrit.',
+    { id: 'kolosso', name: 'Panoplie du Kolosso', sameMonster: true, monsterCc: -30, monsterStats: { do: 4, docrit: -33 }, text: 'le porteur gagne +4 DO, −30 % CC et −33 DoCrit.',
       items: ['anneau_kolosso', 'ceinture_kolosso', 'coiffe_kolosso'] },
     { id: 'boreale', name: 'Panoplie de Boréale', distinctMonsters: true, ignoreReductions: true, text: 'si chaque pièce est sur un monstre différent (4 monstres), leurs dégâts ignorent les réductions de dégâts (hors PB et boucliers).',
       items: ['alliance_boreale', 'ceinture_boreale', 'bottes_boreale', 'coiffe_boreale'] },
@@ -6908,7 +6923,7 @@ div.tile { cursor: default; }
     ocre: { fx: { amount: 2 }, rep: [['+1 PA', '+2 PA'], ['passe à 11', 'passe à 12']] },
     vulbis: { fx: { amount: 2 }, rep: [['+1 PM', '+2 PM'], ['+1 déplacement par tour', '+2 déplacements par tour']] },
     glaces: { fx: { amount: 3 }, rep: [['+2 DO', '+3 DO'], ['Augmente de 2', 'Augmente de 3']] },
-    domakuro: { fx: { amount: 6 }, rep: [['+4 DoCrit', '+6 DoCrit'], ['4 dégâts de plus', '6 dégâts de plus']] },
+    domakuro: { fx: { amount: 5 }, rep: [['+3 DoCrit', '+5 DoCrit'], ['3 dégâts de plus', '5 dégâts de plus']] },
     dokoko: { fx: { amount: 8 }, rep: [['+5 PV/tour', '+8 PV/tour'], ['récupèrent 5 PV', 'récupèrent 8 PV']] },
     cauchemar: { fx: { amount: 53 }, rep: [['+35 %', '+53 %']] },
     dofoozbz: { fx: { amount: 3 }, rep: [['+2 monstres', '+3 monstres'], ['augmente de 2', 'augmente de 3']] },
@@ -6922,7 +6937,7 @@ div.tile { cursor: default; }
     sylvestre: { fx: { amount: 2 }, rep: [['+1 tour', '+2 tours'], ['Augmente de 1 tour', 'Augmente de 2 tours']] },
     nebuleux: { fx: { oddDf: 120, evenHeal: 120 }, rep: [['+80 %', '+120 %']] },
     dokille: { fx: { amount: 8 }, rep: [['+5 %', '+8 %'], ['Augmente de 5 %', 'Augmente de 8 %']] },
-    kalyptus: { fx: { amount: 23, special: 15 }, rep: [['+15 % à toutes', '+23 % à toutes'], ['Augmente de 15 %', 'Augmente de 23 %'], ['+10 % seulement (20 %)', '+15 % seulement (25 %)'], ['+10 % seulement (40 %)', '+15 % seulement (45 %)'], ['+15 %, soit 25 %', '+23 %, soit 33 %']] },
+    kalyptus: { fx: { amount: 23, special: 15, eca: 8 }, rep: [['+15 % à toutes', '+23 % à toutes'], ['Augmente de 15 %', 'Augmente de 23 %'], ['+5 % seulement (15 %)', '+8 % seulement (18 %)'], ['+10 % seulement (40 %)', '+15 % seulement (45 %)'], ['+15 %, soit 25 %', '+23 %, soit 33 %']] },
     dofawa: { fx: { amount: 2 }, rep: [['+1 PV', '+2 PV'], ['1 PV de plus', '2 PV de plus']] },
     dofungus: { fx: { amount: 45 }, rep: [['+30 %', '+45 %']] },
     dotruche: { fx: { amount: 5 }, rep: [['+3 Soins', '+5 Soins'], ['gagnent +3', 'gagnent +5']] },
@@ -8533,7 +8548,8 @@ div.tile { cursor: default; }
       return Math.max(1, Math.min(99, RULES.paDrainBase + this.retraitOf(src, srcM) + (src ? this.luckOf(src) : 0) - this.esquiveOf(target) - this.luckOf(target)));
     }
     luckSpecialOf(p) { return this.dofusEffects(p, 'luck').reduce((t, e) => t + (e.special || 0), 0); }
-    chanceOf(p, base, special) { return Math.min(100, base + (special ? this.luckSpecialOf(p) : this.luckOf(p))); }
+    luckEcaOf(p) { return this.dofusEffects(p, 'luck').reduce((t, e) => t + (e.eca || 0), 0); }
+    chanceOf(p, base, special) { return Math.min(100, base + (special === 'eca' ? this.luckEcaOf(p) : special ? this.luckSpecialOf(p) : this.luckOf(p))); }
     /** Nombre de cartes à défausser de la main pour un sort (Mot Stimulant), Tacheté compris. */
     discardCountOf(p, def) {
       return (def.effects || []).filter((e) => e.type === 'discardPick').reduce((t, e) => t + (e.n || 1) + this.plusOneOf(p), 0);
@@ -8599,21 +8615,20 @@ div.tile { cursor: default; }
     spellCritOf(p, def) {
       let c = this.classOf(p).passive.spellCrit;
       if (def && def.baseCc != null) c = (def.baseCcByClass && def.baseCcByClass[p.classId] != null) ? def.baseCcByClass[p.classId] : def.baseCc; // CC de base propre au sort (Attaque Mortelle)
-      return Math.max(RULES.minCrit, Math.min(RULES.maxCrit, (c != null ? c : RULES.spellCrit) + this.dofusSum(p, 'baseCrit') + this.dofusCc(p) + p.spellCcBonus + this.setCc(p) + this.bizarreCc(p)));
+      return Math.max(RULES.minCrit, Math.min(RULES.maxCrit, (c != null ? c : RULES.spellCrit) + this.dofusSum(p, 'baseCrit') + this.dofusCc(p) + p.spellCcBonus + this.setCc(p) + this.bizarreCc(p) + (this.classOf(p).passive.ccBonus || 0)));
     }
     baseCritOf(p) {
       const c = this.classOf(p).passive.baseCrit;
-      return (c != null ? c : RULES.baseCrit) + this.dofusSum(p, 'baseCrit') + this.dofusCc(p);
+      return (c != null ? c : RULES.baseCrit) + this.dofusSum(p, 'baseCrit') + this.dofusCc(p) + (this.classOf(p).passive.ccBonus || 0); // Ecaflip : +15 % de CC
     }
     critMultiplierOf(p) { return this.classOf(p).passive.critMultiplier || RULES.critMultiplier; }
 
-    /** Ecaflip : une carte payante jouée peut rendre son coût en PA. Un seul tirage par carte. */
-    maybeRefund(p, def, events, cost = def.cost) {
-      const chance = this.classOf(p).passive.refundChance;
-      if (!chance || cost <= 0 || this.rng() >= this.chanceOf(p, chance, true) / 100) return; // Kalyptus : +10 % seulement
-      p.pa += cost;
-      this.emit(events, { type: 'pa', key: 'p:' + p.idx, amount: cost,
-        text: p.name + ' : ' + def.name + ' rend ' + cost + ' PA' });
+    /** Ecaflip : une carte jouée peut faire piocher une carte au hasard dans le cimetière ennemi. Un seul tirage par carte. Kalyptus : +5 % seulement. */
+    maybeRefund(p, def, events) {
+      const chance = this.classOf(p).passive.graveStealChance;
+      const opp = this.state.players[1 - p.idx];
+      if (!chance || opp.discard.length === 0 || this.rng() >= this.chanceOf(p, chance, 'eca') / 100) return;
+      this.takeFromGrave(p, opp, 1, null, null, events);
     }
 
     /** Somme d'un passif numérique des équipements d'un monstre (ex. 'regenHp'). */
@@ -9672,7 +9687,8 @@ div.tile { cursor: default; }
       const def = CARDS[card.cardId];
       const m = this.resolve(a.target).m;
       const equipCost = FG.extraCost(def, me.classId); // Iop : 1 PA par équipement
-      if (equipCost > 0) { me.pa -= equipCost; me.paSpent += equipCost; this.maybeRefund(me, def, events, equipCost); }
+      if (equipCost > 0) { me.pa -= equipCost; me.paSpent += equipCost; }
+      this.maybeRefund(me, def, events);
       this.applyEquipment(me, m, card, events);
     }
 
@@ -10627,7 +10643,7 @@ div.tile { cursor: default; }
         this.emit(events, { type: 'info', text: ctx.owner.name + ' : +' + e.amount + ' DO pendant ' + e.turns + ' tours' });
       }
       effects = effects.filter((e) => e.type !== 'doBuff');
-      const mult = ctx.crit ? (ctx.critDouble ? (this.critMultiplierOf(ctx.owner) >= 3 ? 4 : 2) : this.critMultiplierOf(ctx.owner) + (ctx.source && ctx.source.boost ? ctx.source.boost.crit : 0)) : 1; // critDouble (Baguettereled) : ×2, ×4 pour l'Ecaflip
+      const mult = ctx.crit ? (ctx.critDouble ? (this.critMultiplierOf(ctx.owner) >= 2 ? 3 : 2) : this.critMultiplierOf(ctx.owner) + (ctx.source && ctx.source.boost ? ctx.source.boost.crit : 0)) : 1; // critDouble (Baguettereled) : ×2, ×3 pour l'Ecaflip
       const scale = (value) => Math.round(value * mult); // dégâts critiques arrondis
       // Dofus des Glaces : +1 par ligne de dégâts ; Anneau du Piou : +1 par ligne pour le monstre équipé
       const bonus = this.dofusSum(ctx.owner, 'damageBonus') + (ctx.source ? this.equipStat(ctx.source, 'do', ctx.owner) + (ctx.source.hourDo || 0) : 0) + this.richesBonus(ctx);
@@ -13953,7 +13969,7 @@ div.tile { cursor: default; }
         for (let i = 0; i < count; i++) {
           const x = pool.splice(Math.floor(this.rng() * pool.length), 1)[0];
           const crit = this.rng() * 100 < this.critChanceOf(m, p);
-          const mult = crit ? (this.critMultiplierOf(p) >= 3 ? 4 : 2) : 1; // critique : dégâts doublés (×4 pour l'Ecaflip)
+          const mult = crit ? (this.critMultiplierOf(p) >= 2 ? 3 : 2) : 1; // critique : dégâts doublés (×3 pour l'Ecaflip)
           x.paPoison.push({ perPa: ps.perPa, turns: ps.turns + this.durOf(p), mult });
           this.emit(events, { type: 'poison', key: tm(x), amount: ps.perPa * mult, text: CARDS[x.cardId].name + ' : branche paralysante' + (crit ? ' (critique)' : '') + ', ' + ps.perPa * mult + ' dégâts par PA utilisé pendant ' + ps.turns + ' tours' });
         }
