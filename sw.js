@@ -11,7 +11,7 @@
 
    VERSION : à changer seulement pour forcer le rechargement de TOUS les fichiers
    (icônes, manifest...) chez tous les joueurs. */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'krosciculus-' + VERSION;
 const PAGE = './index.html';
 const PENDING = './__nouvelle-version__';
