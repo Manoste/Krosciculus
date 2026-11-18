@@ -16107,7 +16107,7 @@ div.tile { cursor: default; }
 
   /** Cartes « visibles de l'adversaire » (Kralamour) présentes en main : une pastille par carte. */
   function revealedRow(p) {
-    const cards = p.hand.filter((c) => CARDS[c.cardId].revealed);
+    const cards = p.hand.filter((c) => c.cardId && CARDS[c.cardId] && CARDS[c.cardId].revealed); // main adverse masquée en ligne : cardId null
     if (!cards.length) return null;
     return h('div', { class: 'dofus-row revealed-row', role: 'list', 'aria-label': 'Cartes visibles dans la main de ' + p.name },
       h('span', { class: 'revealed-label' }, 'Main visible'),
@@ -17373,7 +17373,7 @@ div.tile { cursor: default; }
     const hidden = (list) => list.map((c, i) => ({ uid: -1 - i, cardId: null }));
     for (const p of v.players) {
       if (p.idx === idx) continue;
-      p.hand = hidden(p.hand);
+      p.hand = p.hand.map((c, i) => (FG.CARDS[c.cardId] && FG.CARDS[c.cardId].revealed ? c : { uid: -1 - i, cardId: null })); // les cartes « visibles de l'adversaire » (Kralamour) restent visibles
       p.deck = hidden(p.deck);
       p.deckEquipment = [];
       for (const m of p.board) m.decoyReal = null; // Ninjutsu : la place du vrai Rõnin reste secrète pour l'adversaire
