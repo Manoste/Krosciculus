@@ -17460,16 +17460,18 @@ div.tile { cursor: default; }
    * l'appelant échange offre / réponse / candidats ICE par le moyen de son choix (voir signaling.js).
    */
   function createRtcLink(initiator, config) {
-    const pc = new RTCPeerConnection({ iceServers: (config && config.iceServers) || ICE_SERVERS });
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS.concat((config && config.iceServers) || []) }); // les serveurs fournis s'ajoutent aux défauts
     let transport = null, opened = false;
     let remoteSet = false; const pendingCands = []; // candidats ICE reçus avant la description distante : mis en file, jamais perdus
-    const flushCands = () => { remoteSet = true; pendingCands.splice(0).forEach((c) => pc.addIceCandidate(c).catch(() => { /* périmé : ignoré */ })); };
+    let watch = null; // garde-fou : sans lui, l'écran peut « charger à l'infini » quand aucun chemin réseau n'existe
+    const startWatch = () => { if (watch || opened) return; watch = setTimeout(() => { if (!opened) { fail('Connexion impossible : aucun chemin réseau entre les deux appareils (relais TURN nécessaire).'); try { pc.close(); } catch (e) { /* ignoré */ } } }, 40000); };
+    const flushCands = () => { startWatch(); remoteSet = true; pendingCands.splice(0).forEach((c) => pc.addIceCandidate(c).catch(() => { /* périmé : ignoré */ })); };
     const openCbs = [], failCbs = [];
     const fail = (msg) => { failCbs.splice(0).forEach((f) => f(new Error(msg))); if (transport) transport._closed(); };
 
     const wire = (ch) => {
       transport = makeTransport((t) => ch.send(t), () => { try { ch.close(); pc.close(); } catch (e) { /* déjà fermé */ } });
-      ch.onopen = () => { opened = true; openCbs.splice(0).forEach((f) => f(transport)); };
+      ch.onopen = () => { opened = true; clearTimeout(watch); openCbs.splice(0).forEach((f) => f(transport)); };
       ch.onmessage = (e) => transport._receive(e.data);
       ch.onclose = () => transport._closed();
     };
@@ -17527,7 +17529,7 @@ div.tile { cursor: default; }
   const config = {
     signalingUrl: 'wss://0.peerjs.com:443/peerjs',
     signalingKey: 'peerjs',
-    iceServers: null, // null = serveurs STUN par défaut (transport.js)
+    iceServers: null, // null = STUN + TURN PeerJS (transport.js). Pour ajouter VOTRE TURN (ajouté aux défauts) : [{ urls: ['turn:standard.relay.metered.ca:80', 'turn:standard.relay.metered.ca:443', 'turns:standard.relay.metered.ca:443?transport=tcp'], username: '…', credential: '…' }]
     guestTimeoutMs: 45000,
   };
 
