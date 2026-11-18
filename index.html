@@ -17449,7 +17449,11 @@ div.tile { cursor: default; }
     return [a, b];
   }
 
-  const ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }];
+  const ICE_SERVERS = [
+    { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' },
+    /* Relais TURN public de PeerJS : sans lui, deux joueurs en 4G/5G ou derrière un NAT strict ne peuvent pas se joindre. */
+    { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+  ];
 
   /**
    * Un lien WebRTC (une connexion + un canal de données). `signal` n'est PAS géré ici :
@@ -17458,6 +17462,8 @@ div.tile { cursor: default; }
   function createRtcLink(initiator, config) {
     const pc = new RTCPeerConnection({ iceServers: (config && config.iceServers) || ICE_SERVERS });
     let transport = null, opened = false;
+    let remoteSet = false; const pendingCands = []; // candidats ICE reçus avant la description distante : mis en file, jamais perdus
+    const flushCands = () => { remoteSet = true; pendingCands.splice(0).forEach((c) => pc.addIceCandidate(c).catch(() => { /* périmé : ignoré */ })); };
     const openCbs = [], failCbs = [];
     const fail = (msg) => { failCbs.splice(0).forEach((f) => f(new Error(msg))); if (transport) transport._closed(); };
 
@@ -17479,10 +17485,10 @@ div.tile { cursor: default; }
       /** Promesse du transport ouvert. */
       opened: () => new Promise((res, rej) => { if (opened) res(transport); else { openCbs.push(res); failCbs.push(rej); } }),
       onCandidate(cb) { pc.onicecandidate = (e) => { if (e.candidate) cb(e.candidate.toJSON()); }; },
-      addCandidate: (c) => pc.addIceCandidate(c).catch(() => { /* candidat périmé : ignoré */ }),
+      addCandidate(c) { if (!remoteSet) { pendingCands.push(c); return Promise.resolve(); } return pc.addIceCandidate(c).catch(() => { /* candidat périmé : ignoré */ }); },
       async createOffer() { const o = await pc.createOffer(); await pc.setLocalDescription(o); return { type: o.type, sdp: o.sdp }; },
-      async acceptOffer(offer) { await pc.setRemoteDescription({ type: 'offer', sdp: String(offer.sdp) }); const a = await pc.createAnswer(); await pc.setLocalDescription(a); return { type: a.type, sdp: a.sdp }; },
-      acceptAnswer: (answer) => pc.setRemoteDescription({ type: 'answer', sdp: String(answer.sdp) }),
+      async acceptOffer(offer) { await pc.setRemoteDescription({ type: 'offer', sdp: String(offer.sdp) }); flushCands(); const a = await pc.createAnswer(); await pc.setLocalDescription(a); return { type: a.type, sdp: a.sdp }; },
+      async acceptAnswer(answer) { await pc.setRemoteDescription({ type: 'answer', sdp: String(answer.sdp) }); flushCands(); },
       /** Attend la fin de la collecte des candidats (pour un échange de codes sans serveur). */
       gathered: (timeoutMs) => new Promise((res) => {
         if (pc.iceGatheringState === 'complete') return res();
@@ -17522,7 +17528,7 @@ div.tile { cursor: default; }
     signalingUrl: 'wss://0.peerjs.com:443/peerjs',
     signalingKey: 'peerjs',
     iceServers: null, // null = serveurs STUN par défaut (transport.js)
-    guestTimeoutMs: 30000,
+    guestTimeoutMs: 45000,
   };
 
   const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sans I, L, O, 0, 1
@@ -17532,15 +17538,15 @@ div.tile { cursor: default; }
   const normalizeCode = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
   /* ---------- salle via serveur de signalisation ---------- */
-  function openSignal(id, onMessage, onClose) {
-    const url = config.signalingUrl + '?key=' + encodeURIComponent(config.signalingKey) + '&id=' + encodeURIComponent(id) + '&token=' + rand(12, ALPHABET);
+  function openSignal(id, onMessage, onClose, token) {
+    const url = config.signalingUrl + '?key=' + encodeURIComponent(config.signalingKey) + '&id=' + encodeURIComponent(id) + '&token=' + (token || rand(12, ALPHABET));
     const ws = new WebSocket(url);
-    let beat = null, openFn, failFn;
+    let beat = null, openFn, failFn, manual = false; // manual : fermeture voulue par nous (onClose n'est appelé que pour une coupure subie)
     const opened = new Promise((res, rej) => { openFn = res; failFn = rej; });
     opened.catch(() => {}); // l'échec est traité par l'appelant ; pas d'erreur « non gérée » en double
     const sig = {
       send(obj) { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); },
-      close() { clearInterval(beat); try { ws.close(); } catch (e) { /* ignoré */ } },
+      close() { manual = true; clearInterval(beat); try { ws.close(); } catch (e) { /* ignoré */ } },
       opened, _open: openFn, _fail: failFn,
     };
     ws.onopen = () => { beat = setInterval(() => sig.send({ type: 'HEARTBEAT' }), 5000); };
@@ -17551,25 +17557,46 @@ div.tile { cursor: default; }
       onMessage(m);
     };
     ws.onerror = () => sig._fail(new Error('Serveur de rencontre injoignable.'));
-    ws.onclose = () => { clearInterval(beat); sig._fail(new Error('Serveur de rencontre injoignable.')); onClose(); };
+    ws.onclose = () => { clearInterval(beat); sig._fail(new Error('Serveur de rencontre injoignable.')); if (!manual) onClose(); };
     return sig;
   }
 
   const payloadOf = (m) => (m && m.payload && typeof m.payload === 'object' ? m.payload : {});
 
   function cloudHost() {
-    let code = rand(6, ALPHABET), sig = null, link = null, cancelled = false, peer = null;
+    let code = rand(6, ALPHABET), token = rand(12, ALPHABET), sig = null, link = null, cancelled = false, peer = null;
+    /* announced : le code a été montré au joueur. Jeton fixe : après une coupure, le serveur rend la salle à son propriétaire. */
+    let announced = false, reopens = 0, reopenTimer = null;
     let resolveReady, rejectReady, resolveConn, rejectConn;
     const ready = new Promise((res, rej) => { resolveReady = res; rejectReady = rej; });
     const connected = new Promise((res, rej) => { resolveConn = res; rejectConn = rej; });
     ready.catch(() => {}); connected.catch(() => {});
     const fail = (e) => { rejectReady(e); rejectConn(e); cancel(); };
 
+    /* Le téléphone coupe le socket dès que l'appli passe en arrière-plan (ex. pour envoyer le code par message) : on reprend la même salle. */
+    function scheduleReopen() {
+      if (cancelled || link) return;
+      if (++reopens > 12) return fail(new Error('Serveur de rencontre injoignable.'));
+      clearTimeout(reopenTimer);
+      reopenTimer = setTimeout(() => { if (!cancelled && !link) connect(0); }, Math.min(800 * reopens, 5000));
+    }
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible' || cancelled || link || !announced || !sig) return;
+      // Le socket est peut-être mort sans l'avoir signalé : on le ferme, puis on rouvre la salle (même jeton) une fois la fermeture traitée par le serveur.
+      const old = sig; sig = null; old.close();
+      setTimeout(() => { if (!cancelled && !link && !sig) connect(0); }, 300);
+    };
+
     function connect(attempt) {
-      sig = openSignal(roomId(code), async (m) => {
-        if (cancelled) return;
-        if (m.type === 'ID-TAKEN' && attempt < 5) { sig.close(); code = rand(6, ALPHABET); connect(attempt + 1); return; }
-        if (m.type === 'OPEN') resolveReady({ code });
+      const s = (sig = openSignal(roomId(code), async (m) => {
+        if (cancelled || s !== sig) return;
+        if (m.type === 'ID-TAKEN') {
+          if (!announced && attempt < 5) { s.close(); code = rand(6, ALPHABET); token = rand(12, ALPHABET); connect(attempt + 1); }
+          else if (announced) { s.close(); scheduleReopen(); } // ancien socket pas encore expiré côté serveur : on réessaie
+          else fail(new Error('Salle indisponible, réessayez.'));
+          return;
+        }
+        if (m.type === 'OPEN') { announced = true; reopens = 0; resolveReady({ code }); }
         else if (m.type === 'OFFER' && !link && typeof m.src === 'string') { // un seul adversaire par salle
           peer = m.src;
           const p = payloadOf(m);
@@ -17583,10 +17610,11 @@ div.tile { cursor: default; }
           const c = payloadOf(m).candidate;
           if (c && typeof c.candidate === 'string') link.addCandidate(c);
         }
-      }, () => {});
-      sig.opened.catch(fail);
+      }, () => { if (announced) scheduleReopen(); }, token));
+      s.opened.catch((e) => { if (s === sig && !announced) fail(e); }); // après l'annonce, un échec passe par scheduleReopen
     }
-    function cancel() { cancelled = true; if (sig) sig.close(); if (link && !link.pcOpen) link.close(); }
+    function cancel() { cancelled = true; clearTimeout(reopenTimer); document.removeEventListener('visibilitychange', onVisible); if (sig) sig.close(); if (link && !link.pcOpen) link.close(); }
+    document.addEventListener('visibilitychange', onVisible);
     connect(0);
     return { ready, connected, cancel };
   }
