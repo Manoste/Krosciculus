@@ -141,6 +141,7 @@ img { display: block; -webkit-user-drag: none; user-select: none; }
 .btn.primary { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); }
 .btn.big { min-height: 50px; font-size: 16px; font-family: var(--font-display); font-weight: 400; letter-spacing: 0.03em; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:active:not(:disabled) { filter: brightness(1.35); box-shadow: inset 0 0 0 2px var(--gold); } /* retour visuel immédiat au toucher */
 
 /* ---------- règles ---------- */
 .rules { color: var(--muted); font-size: 13px; }
@@ -388,6 +389,7 @@ div.tile { cursor: default; }
 .jw .f3 { fill: #000; fill-opacity: 0.12; } .jw .f4 { fill: #fff; fill-opacity: 0.3; }
 .jw .jl { fill: none; stroke: #fff; stroke-opacity: 0.55; stroke-width: 0.45; }
 .jw .jh { fill: #fff; fill-opacity: 0.95; }
+.crit-up { color: #ffe14d; font-weight: 800; text-shadow: 0 0 6px #ffe14d66; }
 .do-up { color: #ff9a3c; font-weight: 800; text-shadow: 0 0 6px #ff9a3c66; }
 .crit-up { color: #ffe14a; font-weight: 800; text-shadow: 0 0 6px #ffe14a66; }
 .dur-up { color: #5fe06a; font-weight: 800; text-shadow: 0 0 6px #5fe06a66; }
@@ -619,6 +621,9 @@ div.tile { cursor: default; }
 .flip-front { transform: rotateY(180deg); }
 .flip-front .tile { height: 100%; }
 @media (prefers-reduced-motion: reduce) { .flip-inner { transition: none; } }
+/* Réglages : « Couper les animations » (ouverture des boosters) */
+.no-pack-anim *, .no-pack-anim *::before, .no-pack-anim *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } /* tout le jeu : combat, cartes, collection, boosters (les chiffres de dégâts restent affichés, sans mouvement) */
+.no-pack-anim .mfx { display: none !important; }
 
 /* deck */
 .deck-list { display: flex; flex-direction: column; gap: 6px; }
@@ -729,6 +734,8 @@ div.tile { cursor: default; }
 .slot-mark svg { width: 100%; height: 100%; }
 .slot.slot-pick { border: 2px dashed var(--gold); background: transparent; min-height: 40px; }
 .badge.jump { color: var(--gold); }
+.badge-invuln { width: 18px; height: 18px; display: block; filter: drop-shadow(0 0 2px #000a); }
+@media (min-width: 0) { .badges .badge-invuln { width: 18px; height: 18px; } }
 
 /* ---------- pastilles de passif (une couleur par famille) ---------- */
 .cv-pas { position: absolute; z-index: 4; left: 5px; top: 52px; display: flex; flex-direction: column; gap: 2px; pointer-events: none; }
@@ -764,7 +771,7 @@ div.tile { cursor: default; }
 .halo-wrap { position: relative; display: block; --c1: #fff3b0; --c2: #ffd84a; --c3: #ff9d00; --c4: #fff; }
 .halo-wrap.myth { --c1: #ffd6ff; --c2: #ff4f7b; --c3: #8a5cff; --c4: #6be6ff; }
 .flip-front .halo-wrap { height: 100%; }
-.packs-body .reveal-grid:has(.halo-wrap) { padding: 34px 12px 72px; } /* le défilement du panneau ne doit pas rogner les lumières */
+.packs-body .reveal-grid.single { padding: 34px 12px 72px; contain: paint; } /* marge fixe pour les lumières, quelles que soient les cartes (sinon la mise en page trahit la rareté avant le retournement) ; contain : les halos masqués n'agrandissent pas la zone défilante */
 .halo-wrap .tile { width: 100%; height: 100%; position: relative; z-index: 2; }
 .halo-wrap .hf { position: absolute; left: 50%; top: 50%; z-index: 1; pointer-events: none; transform: translate(-50%, -50%); }
 .halo-wrap.myth .hf-aura { animation: hfAura 1.2s ease-in-out infinite, hfHue 7s linear infinite; }
@@ -4755,7 +4762,7 @@ div.tile { cursor: default; }
     tropifus: {
       type: 'dofus', rarity: 'legendaire', name: 'Tropifus', shortName: 'Tropifus', cost: 0, image: 'img/dofus-tropifus.png',
       short: '+50 % de dommages aux sorts',
-      text: 'Les dégâts de vos sorts augmentent de 50 % : le pourcentage s\u2019applique à la somme des lignes du sort, après DO, DoCrit et multiplicateur de critique (arrondi au supérieur).',
+      text: 'Les dégâts de vos sorts augmentent de 50 % : le pourcentage s\u2019additionne aux autres % de dégâts de la ligne (critique, indirects) : (base + DO + DoCrit) × (1 + Σ %), puis × %DF (arrondi au supérieur).',
       effect: { type: 'spellPct', amount: 50 },
     },
 
@@ -5654,10 +5661,10 @@ div.tile { cursor: default; }
     },
     coiffeprespic: {
       type: 'equipment', rarity: 'epique', name: 'Coiffe Prespic', cost: 0, image: 'img/coiffe-prespic.png',
-      short: '−2 PV · −1 AT · monte en niveau',
-      stats: { hp: -2, at: -1 },
-      text: 'Passif (mule XP) : comme la Broche Hette, un niveau par action. Cumulable avec elle : les valeurs doublent et le plafond passe à 10 niveaux.',
-      passive: { levelUp: { healPct: 20, statPct: 10, maxLevel: 5 } },
+      short: '−1 AT · monte en niveau',
+      stats: { at: -1 },
+      text: 'Passif (mule XP) : comme la Broche Hette, un niveau par action. Cumulable avec elle : les valeurs doublent et le plafond passe à 12 niveaux.',
+      passive: { levelUp: { statPct: 10, maxLevel: 6 } },
     },
     crocoburio: {
       type: 'equipment', rarity: 'rare', name: 'Force de Crocoburio', cost: 0, image: 'img/crocoburio.png',
@@ -5783,8 +5790,8 @@ div.tile { cursor: default; }
       type: 'equipment', rarity: 'epique', name: 'Broche Hette', cost: 0, image: 'img/hette.png',
       short: '−2 PV · monte en niveau',
       stats: { hp: -2 },
-      text: 'Passif (mule XP) : le monstre équipé gagne un niveau à chaque action (5 niveaux maximum). Niveau : soigne 20 % des PV max et +10 % de stats (AT, PV).',
-      passive: { levelUp: { healPct: 20, statPct: 10, maxLevel: 5 } },
+      text: 'Passif (mule XP) : le monstre équipé gagne un niveau à chaque action (6 niveaux maximum). Niveau : +10 % de stats (AT, PV).',
+      passive: { levelUp: { statPct: 10, maxLevel: 6 } },
     },
     cape_wa: {
       type: 'equipment', rarity: 'epique', name: 'Cape du Wa', cost: 0, image: 'img/cape-wa.png',
@@ -6026,7 +6033,7 @@ div.tile { cursor: default; }
       type: 'equipment', rarity: 'legendaire', name: 'Cape de Nileza', cost: 0, image: 'img/cape-nileza.png',
       short: '+15 PV · invulnérable',
       stats: { hp: 15 },
-      text: 'Passif (Immortalité) : le monstre équipé est invulnérable tant qu\u2019il n\u2019a pas subi de Dommages de Poussée (DoPou).',
+      text: 'Passif (Immortalité) : le monstre équipé est invulnérable tant qu\u2019il n\u2019a pas subi de Dommages de Poussée (DoPou). Il reste ensuite vulnérable pendant 2 tours avant de redevenir invulnérable.',
       passive: { immortalite: 1 },
     },
     bague_gloursonne: {
@@ -6162,10 +6169,10 @@ div.tile { cursor: default; }
     },
     ceinture_seculaire: {
       type: 'equipment', rarity: 'rare', name: 'Ceinture Séculaire', cost: 0, image: 'img/ceinture-seculaire.png',
-      short: '−5 PV · monte en niveau',
-      stats: { hp: -5 },
-      text: 'Passif (Mule) : le monstre équipé gagne un niveau à chaque action (5 niveaux maximum). Niveau : soigne 20 % des PV max et +10 % de stats (AT, PV). Cumulable avec les autres mules : les valeurs s\u2019additionnent et le plafond aussi.',
-      passive: { levelUp: { healPct: 20, statPct: 10, maxLevel: 5 } },
+      short: '−40 % Résistance · monte en niveau',
+      stats: { res: -40 },
+      text: 'Passif (Mule) : le monstre équipé gagne un niveau à chaque action (6 niveaux maximum). Niveau : +10 % de stats (AT, PV). Cumulable avec les autres mules : les valeurs s\u2019additionnent et le plafond aussi.',
+      passive: { levelUp: { statPct: 10, maxLevel: 6 } },
     },
     cape_cantile: {
       type: 'equipment', rarity: 'rare', name: 'Cape de Cantile', cost: 0, image: 'img/cape-cantile.png',
@@ -6217,8 +6224,8 @@ div.tile { cursor: default; }
     },
     amulette_ementaire_deluxe: {
       type: 'equipment', rarity: 'legendaire', name: 'Amulette Ementaire Deluxe', cost: 0, image: 'img/amulette-ementaire-deluxe.png',
-      short: '+1 AT · +1 monstre · +2 % Résistance',
-      stats: { at: 1, board: 1, res: 2 },
+      short: '+1 AT · +1 monstre · +4 % Résistance',
+      stats: { at: 1, board: 1, res: 4 },
       text: '',
     },
     objection_obsidiantre: {
@@ -6966,6 +6973,10 @@ div.tile { cursor: default; }
       const id = baseId + '_rayon';
       FG.RAYONS[baseId] = { id, name: base.name + ' ' + word(base.name) };
       FG.CARDS[id] = Object.assign({}, base, { name: FG.RAYONS[baseId].name, rayon: true, rayonOf: baseId }, base.type === 'dofus' ? DOFUS_RAYON[baseId] || {} : {});
+      if (base.passive && base.passive.levelUp) { // mule rayonnante : +15 % de stats par niveau au lieu de 10 %
+        FG.CARDS[id].passive = Object.assign({}, base.passive, { levelUp: Object.assign({}, base.passive.levelUp, { statPct: 15 }) });
+        if (base.text) FG.CARDS[id].text = base.text.split('+10 % de stats').join('+15 % de stats');
+      }
       const bonus = base.type === 'dofus' && !DOFUS_RAYON[baseId] ? DOFUS_RAYON_BONUS[baseId] : null; // Dofus rayonnant : +50 % (arrondi au supérieur)
       if (bonus) {
         const edit = (str) => bonus.rep.reduce((t, [from, to]) => t.split(from).join(to), str);
@@ -9605,18 +9616,19 @@ div.tile { cursor: default; }
       };
       const run = (crit) => {
         const mult = crit ? (opts.critDouble ? (this.critMultiplierOf(owner) >= 2 ? 3 : 2) : this.critMultiplierOf(owner) + (source && source.boost ? source.boost.crit : 0)) : 1;
-        const scale = (v) => Math.round(v * mult);
+        const critPct = crit ? Math.round((mult - 1) * 100) : 0;
         const doBuff = effects.reduce((t, e) => t + (e.type === 'doBuff' ? e.amount : 0), 0); // Épée Divine : DO en place avant les dégâts du même sort
         const bonus = this.dofusSum(owner, 'damageBonus') + (source ? this.equipStat(source, 'do', owner) + (source.hourDo || 0) : 0) + this.richesBonus({ owner, source }) + doBuff;
         const hornDoCrit = crit && source ? owner.board.reduce((t, a) => t + (a.horn ? passiveOf(a, 'horn')?.doCrit || 0 : 0), 0) : 0;
         const critBonus = crit ? this.dofusSum(owner, 'critDamage') + (source ? this.equipStat(source, 'docrit', owner) + (source.docritTemp ? source.docritTemp.amount : 0) : 0) + hornDoCrit : 0;
         const spellPct = isMon ? 0 : this.dofusSum(owner, 'spellPct') + (this.state.cadran && this.state.cadran.hour === 15 ? 30 : 0);
-        const amp = (v) => (spellPct > 0 ? Math.ceil((v * (100 + spellPct)) / 100) : v);
+        const ipct = this.indirectOf(owner);
+        const calc = (v, indirect) => { const x = (v * (100 + critPct + spellPct + (indirect ? ipct : 0))) / 100; return spellPct > 0 ? Math.ceil(x - 1e-9) : Math.round(x); }; // (base+DO+DoCrit) × (1 + Σ %)
         let opening = !isMon && owner.spellBoost > 0 && effects.some((e) => e.boosted) ? owner.spellBoost : 0;
-        const strike = (value, allowZero) => {
+        const strike = (value, allowZero, indirect) => {
           if (!(value > 0) && !(allowZero && value === 0)) return 0;
           const extra = opening; opening = 0;
-          return scale(value) + bonus + critBonus + extra;
+          return calc(value + extra + bonus + critBonus, indirect);
         };
         const baseOf = (e) => {
           const atBase = e.amount === 'AT' ? atVal : e.amount === 'HP' ? hpVal : e.amount;
@@ -9632,18 +9644,7 @@ div.tile { cursor: default; }
             + (e.selfMaxHpPct && isMon ? Math.max(1, Math.floor((maxHpVal * e.selfMaxHpPct) / 100)) : 0)
             + (e.plusPerEnemy ? e.plusPerEnemy * foeBoard.length : 0);
         };
-        const extraLine = new Map(); // Tropifus / Cadran 15 h : +N % sur la somme des lignes (surplus ajouté à la dernière ligne de chaque groupe)
-        if (spellPct > 0) {
-          const before = opening; const groups = {};
-          for (const e of effects) {
-            if (!DMG.includes(e.type) || !usable(e) || !(typeof e.amount === 'number' && e.amount > 0)) continue;
-            const g = groups[e.type] || (groups[e.type] = { total: 0, last: null });
-            g.total += strike(baseOf(e)); g.last = e;
-          }
-          for (const g of Object.values(groups)) extraLine.set(g.last, amp(g.total) - g.total);
-          opening = before;
-        }
-        const ipct = this.indirectOf(owner);
+        const extraLine = new Map();
         const df = this.dfOf(owner, source);
         const fin = (amount, indirect) => {
           if (amount <= 0) return 0;
@@ -9656,11 +9657,11 @@ div.tile { cursor: default; }
           if (e.type === 'poison') { // le poison de sort a ses DO à la pose ; % indirects puis %DF à chaque tick
             const b = baseOf(e);
             if (!(b > 0)) return null;
-            return { v: fin(amp(scale(b) + bonus), true), s: 0 };
+            return { v: fin(calc(b + bonus, true), false), s: 0 };
           }
-          if (e.type === 'damagePlayer') { const v = fin(strike(baseOf(e)) + (extraLine.get(e) || 0), true); return v > 0 ? { v, s: 0 } : null; }
+          if (e.type === 'damagePlayer') { const v = fin(strike(baseOf(e), false, true) + (extraLine.get(e) || 0), false); return v > 0 ? { v, s: 0 } : null; }
           const b = baseOf(e);
-          const line = strike(b, typeof e.amount === 'string') + (extraLine.get(e) || 0);
+          const line = strike(b, typeof e.amount === 'string', e.type === 'damage' && !!opts.indirectPlayer) + (extraLine.get(e) || 0);
           if (!(line > 0)) return null;
           let sp = 0;
           if (e.type === 'damage') {
@@ -9670,7 +9671,7 @@ div.tile { cursor: default; }
               if (sb > 0) sp = fin(strike(sb), false);
             }
           }
-          return { v: fin(line, false), s: sp };
+          return { v: fin(line, false), s: sp }; // visant le Joueur (sort/attaque « target: player ») : dégâts indirects
         });
       };
       const nrm = run(false), crt = run(true);
@@ -10073,7 +10074,6 @@ div.tile { cursor: default; }
         m.hp += dHp;
         if (m.at > 0) m.at += grow(m.at);
         this.emit(events, { type: 'buff', key: tm(m), amount: 0, text: CARDS[m.cardId].name + ' : niveau ' + m.level + ' (AT ' + m.at + ', PV max ' + m.maxHp + ')' });
-        this.heal(m, pctOf(m.maxHp, lv.healPct), events);
       }
     }
 
@@ -10402,6 +10402,19 @@ div.tile { cursor: default; }
     comteOf(p) { return p.board.find((x) => x.hp > 0 && passiveOf(x, 'carillon')) || null; }
 
     /** Carillon : invulnérable les tours pairs (numéro de tour affiché), sauf s'il a perdu son invulnérabilité pour ce tour. */
+    /** Invulnérabilité en cours (pour la pastille de combat) : reprend les mêmes conditions que dans `damage`, sans les cas qui dépendent de l'attaque. */
+    isInvulnerable(m) {
+      if (!m || m.hp <= 0) return false;
+      const owner = this.state.players.find((p) => p.board.includes(m));
+      if (m.sylv) return true;
+      if (m.klimeInv && passiveOf(m, 'cuirMoustache')) return true;
+      if (passiveOf(m, 'carillon') && this.carillonInvulnerable(m)) return true;
+      if (owner && !m.iceBroken && owner.board.some((x) => x.hp > 0 && passiveOf(x, 'reineGlaces'))) return true;
+      if (passiveOf(m, 'immortalite') && !(m.immoVuln > 0)) return true;
+      if (m.equipment && this.equipPassiveSum(m, 'immortalite') > 0 && !(m.capeVuln > 0)) return true;
+      if (!(m.megaVuln > 0) && passiveOf(m, 'megazorg')) return true;
+      return false;
+    }
     carillonInvulnerable(m) { return this.state.round % 2 === 0 && m.carOpen !== this.state.round; }
 
     /** Heure de Paris TTC : sens de la confusion selon le % de PV ('cw' droite, 'ccw' gauche, 'pi' autre board). */
@@ -10761,14 +10774,16 @@ div.tile { cursor: default; }
       }
       effects = effects.filter((e) => e.type !== 'doBuff');
       const mult = ctx.crit ? (ctx.critDouble ? (this.critMultiplierOf(ctx.owner) >= 2 ? 3 : 2) : this.critMultiplierOf(ctx.owner) + (ctx.source && ctx.source.boost ? ctx.source.boost.crit : 0)) : 1; // critDouble (Baguettereled) : ×2, ×3 pour l'Ecaflip
-      const scale = (value) => Math.round(value * mult); // dégâts critiques arrondis
+      const critPct = ctx.crit ? Math.round((mult - 1) * 100) : 0; // multiplicateur de critique exprimé en % (+50 % de base, +100 % Ecaflip)
       // Dofus des Glaces : +1 par ligne de dégâts ; Anneau du Piou : +1 par ligne pour le monstre équipé
       const bonus = this.dofusSum(ctx.owner, 'damageBonus') + (ctx.source ? this.equipStat(ctx.source, 'do', ctx.owner) + (ctx.source.hourDo || 0) : 0) + this.richesBonus(ctx);
       const hornDoCrit = ctx.crit && ctx.source ? ctx.owner.board.reduce((t, a) => t + (a.horn ? passiveOf(a, 'horn')?.doCrit || 0 : 0), 0) : 0; // Trompettes de la mort : DoCrit des alliés
       const critBonus = ctx.crit ? this.dofusSum(ctx.owner, 'critDamage') + (ctx.source ? this.equipStat(ctx.source, 'docrit', ctx.owner) + (ctx.source.docritTemp ? ctx.source.docritTemp.amount : 0) : 0) + hornDoCrit : 0; // Domakuro : +2 par ligne en critique ; équipements (Anneau du RN) : DoCrit
       // Tropifus : +N % de dommages pour les sorts (pas pour les actions de monstres)
       const spellPct = ctx.source ? 0 : this.dofusSum(ctx.owner, 'spellPct') + (this.state.cadran && this.state.cadran.hour === 15 ? 30 : 0); // Cadran, 15 h : +30 % de dégâts des sorts
-      const amp = (v) => (spellPct > 0 ? Math.ceil((v * (100 + spellPct)) / 100) : v); // arrondi au supérieur : le bonus se voit même sur un petit sort
+      const ipctLine = this.indirectOf(ctx.owner); // % Dommages indirects (lignes visant le Joueur)
+      // Formule : (base + DO + DoCrit) × (1 + %crit + %sorts + %indirects + %boost) ; le %DF se multiplie ensuite (dealDamage). Arrondi au supérieur si %sorts (le bonus se voit même sur un petit sort).
+      const calc = (v, indirect, withCrit) => { const p = 100 + (withCrit === false ? 0 : critPct) + spellPct + (indirect ? ipctLine : 0); const x = (v * p) / 100; return spellPct > 0 ? Math.ceil(x - 1e-9) : Math.round(x); };
       let opening = ctx.opening || 0; // initiative : appliquée une seule fois, sur la première ligne
       if (!ctx.source && ctx.owner.spellBoost > 0 && effects.some((e) => e.boosted)) {
         opening += ctx.owner.spellBoost; // Colère de Iop : le bonus se conserve et se cumule sans limite (+60, +120, +180…)
@@ -10776,30 +10791,13 @@ div.tile { cursor: default; }
       const foeBoard = this.state.players[1 - ctx.owner.idx].board;
       const allBase = (e) => e.amount === 'AT' ? ctx.source.at : e.amount === 'MISSING' ? Math.round(Math.max(0, ctx.source.maxHp - ctx.source.hp) * (e.pct || 100) / 100)
         : e.perEnemy ? Math.max(e.min || 0, e.amount - e.perEnemy * foeBoard.length) : e.amount; // Mimic, Souffle Ardent
-      const strike = (value, allowZero) => { // allowZero : ligne issue de l'AT, les DO s'appliquent même si elle vaut 0 (AT à 0)
+      const strike = (value, allowZero, indirect) => { // allowZero : ligne issue de l'AT, les DO s'appliquent même si elle vaut 0 (AT à 0)
         if (!(value > 0) && !(allowZero && value === 0)) return 0;
         const extra = opening; opening = 0;
-        const total = scale(value) + bonus + critBonus + extra;
+        const total = calc(value + extra + bonus + critBonus, indirect); // base (dont initiative / Colère de Iop) + DO + DoCrit, puis × (1 + Σ %)
         return ctx.dmgMult ? Math.max(1, Math.floor(total * ctx.dmgMult)) : total; // ricochet : dégâts réduits
       };
-      // Tropifus : le pourcentage porte sur la SOMME des lignes de dégâts du sort (après DO, DoCrit et critique) ;
-      // le surplus est ajouté à la dernière ligne de chaque groupe (2 + 2 → total 4 → +1).
-      const extraLine = new Map();
-      const openingBefore = opening;
-      if (spellPct > 0) {
-        const groups = {};
-        for (const e of effects) {
-          if (!['damage', 'damagePlayer', 'damageAll'].includes(e.type) || !(typeof e.amount === 'number' && e.amount > 0)) continue;
-          if (e.ifBoardFull && this.troopCount(ctx.owner) < this.maxBoardOf(ctx.owner)) continue;
-          const g = groups[e.type] || (groups[e.type] = { total: 0, last: null });
-          g.total += strike(e.type === 'damageAll' ? allBase(e) : e.amount + (e.type === 'damage' ? this.missingBonus(e, this.resolve(ctx.target)) : 0));
-          g.last = e;
-        }
-        for (const g of Object.values(groups)) extraLine.set(g.last, amp(g.total) - g.total);
-        const gain = [...extraLine.values()].reduce((a, b) => a + b, 0);
-        if (gain > 0) this.emit(events, { type: 'info', text: 'Tropifus : +' + gain + ' dégât' + (gain > 1 ? 's' : '') + ' (+' + spellPct + ' %)' });
-        opening = openingBefore; // le calcul préalable ne consomme pas l'ouverture
-      }
+      const extraLine = new Map(); // (ancien surplus Tropifus par somme de lignes : le %sorts est désormais dans la somme des % de chaque ligne)
       const bonusOf = (e) => extraLine.get(e) || 0;
       for (const e of effects) {
         switch (e.type) {
@@ -10851,12 +10849,12 @@ div.tile { cursor: default; }
             const indirectHit = t.kind === 'player' && !!ctx.indirectPlayer;
             const tHp = t.kind === 'monster' ? t.m.hp : t.p.hp;
             const dbl = (e.doubleBelow && t.kind === 'monster' && t.m.hp * 100 < t.m.maxHp * e.doubleBelow) || (e.doubleWeaker && ctx.source && tHp < ctx.source.hp) ? 2 : 1; // Crânon : ×2 sous N % de PV ; Sa Peur : ×2 si la cible a moins de PV que le lanceur
-            let lineDmg = (strike(base, typeof e.amount === 'string' && atBase >= 0) + bonusOf(e)) * dbl;
+            let lineDmg = (strike(base, typeof e.amount === 'string' && atBase >= 0, indirectHit) + bonusOf(e)) * dbl;
             if (e.missBoost && ctx.source && ctx.source.maxHp > 0) { // Foux ou rien : +gain % tous les `per` % de PV manquants du lanceur
               const missing = Math.floor(((ctx.source.maxHp - ctx.source.hp) * 100) / ctx.source.maxHp);
               lineDmg = Math.round((lineDmg * (100 + Math.floor(missing / e.missBoost.per) * e.missBoost.gain)) / 100);
             }
-            let dealt = this.dealDamage(t, this.ivoire(ctx, t, lineDmg), { crit: ctx.crit, pierce: !!e.pierce, ignoreAll: !!e.pierce, indirect: indirectHit, targeted: !!ctx.source }, events); // targeted : attaque de monstre sur sa cible (Volatile) ; pierce : ignore armures, réductions, boucliers et PB
+            let dealt = this.dealDamage(t, this.ivoire(ctx, t, lineDmg), { crit: ctx.crit, pierce: !!e.pierce, ignoreAll: !!e.pierce, indirect: indirectHit, indirectDone: true, targeted: !!ctx.source }, events); // targeted : attaque de monstre sur sa cible (Volatile) ; pierce : ignore armures, réductions, boucliers et PB
             this.afterHit(ctx, t, dealt, events);
             if (t.kind === 'monster') this.reflect(t.m, ctx, events);
             this.raulebak(t, ctx, dealt, events);
@@ -10976,12 +10974,12 @@ div.tile { cursor: default; }
             if (!t || t.kind !== 'monster') break;
             const base = e.amount === 'AT' ? (ctx.source ? (e.pct ? pctOf(ctx.source.at, e.pct) : ctx.source.at) : 0) : e.amount; // 'AT' : 100 % de l'AT du lanceur (ou pct %)
             if (base <= 0) break;
-            const amount = amp(scale(base) + bonus); // Dofus des Glaces : +1 par tour de poison
+            const amount = calc(base + bonus); const pre = base + bonus, ppct = 100 + critPct + spellPct, pup = spellPct > 0; // Dofus des Glaces ; pre/ppct : le tick ajoute le %indirects à la somme des % : +1 par tour de poison
             if (e.maxStack > 0) { // cumulable N fois (Cuir Moustache) : au-delà, la plus ancienne couche est remplacée
               const same = t.m.poison.filter((x) => x.src === e.stackKey);
               if (same.length >= e.maxStack) t.m.poison.splice(t.m.poison.indexOf(same.reduce((a, b) => (b.turns < a.turns ? b : a))), 1);
             }
-            t.m.poison.push({ amount, turns: e.turns, src: e.maxStack > 0 ? e.stackKey : undefined });
+            t.m.poison.push({ amount, turns: e.turns, src: e.maxStack > 0 ? e.stackKey : undefined, pre, ppct, pup });
             this.emit(events, { type: 'poison', key: tm(t.m), amount,
               text: CARDS[t.m.cardId].name + ' : poison −' + amount + ' PV/tour pendant ' + e.turns + ' tours' });
             break;
@@ -11082,13 +11080,13 @@ div.tile { cursor: default; }
             if (!t || t.kind !== 'monster') break;
             const count = t.m.poison.length;
             if (count === 0) break;
-            const poisons = t.m.poison.map((x) => ({ amount: x.amount, turns: x.turns }));
+            const poisons = t.m.poison.map((x) => ({ amount: x.amount, turns: x.turns, pre: x.pre, ppct: x.ppct, pup: x.pup }));
             const neighbours = adjacentOf(t.owner.board, t.m); // relevés avant les dégâts
-            this.dealDamage(t, scale(e.amountPer * count) + bonus, { crit: ctx.crit }, events);
+            this.dealDamage(t, calc(e.amountPer * count + bonus), { crit: ctx.crit }, events);
             if (e.spread && !t.owner.board.includes(t.m)) {
               for (const n of neighbours) {
                 if (!t.owner.board.includes(n)) continue;
-                for (const x of poisons) n.poison.push({ amount: x.amount, turns: x.turns });
+                for (const x of poisons) n.poison.push({ amount: x.amount, turns: x.turns, pre: x.pre, ppct: x.ppct, pup: x.pup });
                 this.emit(events, { type: 'poison', key: tm(n), amount: 0, text: CARDS[n.cardId].name + ' : les poisons se propagent' });
               }
             }
@@ -11275,7 +11273,7 @@ div.tile { cursor: default; }
             for (const v of victims) {
               if (v.kind === 'monster' && !foe.board.includes(v.m)) continue;
               if (v.kind === 'monster' && this.decoyAbsorbs(ctx, v, events)) continue;
-              const dealt = this.dealDamage(v, this.ivoire(ctx, v, strike(hitBase)), { crit: ctx.crit, indirect: v.kind === 'player' && !!ctx.indirectPlayer }, events);
+              const dealt = this.dealDamage(v, this.ivoire(ctx, v, strike(hitBase, false, v.kind === 'player' && !!ctx.indirectPlayer)), { crit: ctx.crit, indirect: v.kind === 'player' && !!ctx.indirectPlayer, indirectDone: true }, events);
               rndTotal += dealt;
               this.afterHit(ctx, v, dealt, events);
               if (v.kind === 'monster') this.reflect(v.m, ctx, events);
@@ -12336,7 +12334,7 @@ div.tile { cursor: default; }
             const t = this.resolve(ctx.target);
             if (!t || t.kind !== 'monster') break;
             const victim = this.state.players[1 - ctx.owner.idx];
-            this.state.pendingBluff = { caster: ctx.owner.idx, victim: victim.idx, coin: true, targetUid: t.m.uid, targetName: CARDS[t.m.cardId].name, heal: e.heal, damage: amp(scale(e.damage) + bonus) };
+            this.state.pendingBluff = { caster: ctx.owner.idx, victim: victim.idx, coin: true, targetUid: t.m.uid, targetName: CARDS[t.m.cardId].name, heal: e.heal, damage: calc(e.damage + bonus) };
             this.emit(events, { type: 'info', key: tm(t.m), text: ctx.owner.name + ' lance une pièce sur ' + CARDS[t.m.cardId].name + ' : ' + victim.name + ' doit choisir Pile ou Face' });
             break;
           }
@@ -12355,7 +12353,7 @@ div.tile { cursor: default; }
           }
           case 'bluff': { // la victime doit deviner la couleur secrète (action « guess »)
             const victim = this.state.players[1 - ctx.owner.idx];
-            this.state.pendingBluff = { caster: ctx.owner.idx, victim: victim.idx, secret: ctx.secret, shown: ctx.shown, amount: amp(e.amount) };
+            this.state.pendingBluff = { caster: ctx.owner.idx, victim: victim.idx, secret: ctx.secret, shown: ctx.shown, amount: calc(e.amount, false, false) };
             this.emit(events, { type: 'info', text: ctx.owner.name + ' affiche la couleur ' + ctx.shown + ' : ' + victim.name + ' doit deviner la couleur choisie' });
             break;
           }
@@ -12423,7 +12421,7 @@ div.tile { cursor: default; }
             if (e.type === 'sacrificeHeal') {
               for (const ally of ctx.owner.board.slice()) this.heal(ally, e.amount, events, ctx.source);
             } else {
-              const amount = amp(scale(e.amount) + bonus);
+              const amount = calc(e.amount + bonus);
               for (const foeM of this.state.players[1 - ctx.owner.idx].board) {
                 foeM.poison.push({ amount, turns: e.turns });
                 this.emit(events, { type: 'poison', key: tm(foeM), amount, text: CARDS[foeM.cardId].name + ' : poison −' + amount + ' PV/tour pendant ' + e.turns + ' tours' });
@@ -12457,13 +12455,13 @@ div.tile { cursor: default; }
             this.emit(events, { type: 'info', key: tm(t.m), text: CARDS[t.m.cardId].name + ' : régénère ' + e.pct + ' % de ses PV pendant ' + e.turns + ' tours' });
             break;
           }
-          case 'damageSelf': { // Gantique (Harrogant) : dégâts directs aux PV du Joueur adverse (sans DO ni %DF)
-            this.dealDamage({ kind: 'player', p: this.state.players[1 - ctx.owner.idx] }, e.amount, { pierce: true, noDf: true, indirect: true, indirectSrc: ctx.owner }, events);
+          case 'damageSelf': { // Gantique (Harrogant) : dégâts directs aux PV du Joueur adverse (sans DO ; avec %indirects et %DF)
+            this.dealDamage({ kind: 'player', p: this.state.players[1 - ctx.owner.idx] }, e.amount, { pierce: true, indirect: true, indirectSrc: ctx.owner, indirectMon: ctx.source || null }, events);
             break;
           }
           case 'damagePlayer': { // dégâts directs aux PV du joueur adverse
             const foe = this.state.players[1 - ctx.owner.idx];
-            this.dealDamage({ kind: 'player', p: foe }, this.ivoire(ctx, { p: foe }, strike(e.amount) + bonusOf(e)), { crit: ctx.crit, indirect: true }, events);
+            this.dealDamage({ kind: 'player', p: foe }, this.ivoire(ctx, { p: foe }, strike(e.amount, false, true) + bonusOf(e)), { crit: ctx.crit, indirect: true, indirectDone: true }, events);
             break;
           }
           case 'doubleAt': { // Puissance : +pct % d'AT pendant N tours (cumulable)
@@ -12853,12 +12851,12 @@ div.tile { cursor: default; }
         const srcP = opts.indirectSrc || this.state.players[1 - (t.kind === 'player' ? t.p.idx : t.owner.idx)];
         const srcM = opts.indirectMon || null; // monstre à l'origine (riposte) : ses DO et son %DF comptent aussi
         if (!opts.noDoAdd) amount += this.damageBonusOf(srcP, srcM); // DO (bonus ou malus) ; le poison de sort a déjà ses DO à la pose (noDoAdd)
-        const ipct = this.indirectOf(srcP); // % Dommages indirects : après les DO, avant le %DF
+        const ipct = opts.indirectDone ? 0 : this.indirectOf(srcP); // % Dommages indirects : après les DO, avant le %DF (déjà inclus pour le poison de tick)
         if (ipct) amount = Math.floor((amount * (100 + ipct)) / 100);
         const idf = this.dfOf(srcP, srcM); // %DF (bonus ou malus)
         if (idf) amount = Math.floor((amount * (100 + idf)) / 100);
         if (amount <= 0) return 0;
-      } else if (opts.indirect && t.kind === 'player') { // Dégâts au Joueur par un effet (sort/attaque qui le vise, Dofushu, Ébène, Harrogant…) : % Dommages indirects après les DO, avant le %DF (appliqué plus bas)
+      } else if (opts.indirect && !opts.indirectDone && t.kind === 'player') { // Dégâts au Joueur par un effet (sort/attaque qui le vise, Dofushu, Ébène, Harrogant…) : % Dommages indirects après les DO, avant le %DF (appliqué plus bas)
         const ipct = this.indirectOf(opts.indirectSrc || this.state.players[1 - t.p.idx]);
         if (ipct) amount = Math.floor((amount * (100 + ipct)) / 100);
         if (amount <= 0) return 0;
@@ -12868,7 +12866,7 @@ div.tile { cursor: default; }
         if (amount <= 0) return 0;
       }
       const dfc = this.dfCtx;
-      const df = dfc && (top || opts.redirected) && !opts.poison && !opts.noDf ? this.dfOf(dfc.owner, dfc.source) : 0; // %DF : tous les dégâts du lanceur (ennemis comme alliés), après le calcul complet
+      const df = opts.poison || opts.noDf ? 0 : opts.indirectSrc ? this.dfOf(opts.indirectSrc, opts.indirectMon || null) : (dfc && (top || opts.redirected) ? this.dfOf(dfc.owner, dfc.source) : 0); // indirectSrc : effet à source explicite (Gantique, Harrogance, Ébène) → %DF de cette source ; // %DF : tous les dégâts du lanceur (ennemis comme alliés), après le calcul complet
       if (t.kind === 'player') {
         const p = t.p;
         if (df) { amount = Math.max(0, Math.floor((amount * (100 + df)) / 100)); if (amount <= 0) return 0; }
@@ -12945,10 +12943,10 @@ div.tile { cursor: default; }
           return 0;
         }
       }
-      if (m.equipment && this.equipPassiveSum(m, 'immortalite') > 0 && !m.capeBroken) { // Cape de Nileza (équipement) : invulnérable jusqu'aux premiers Dommages de Poussée subis
+      if (m.equipment && this.equipPassiveSum(m, 'immortalite') > 0 && !(m.capeVuln > 0)) { // Cape de Nileza (équipement) : invulnérable jusqu'aux premiers Dommages de Poussée subis
         if (opts.push && amount > 0) {
-          m.capeBroken = true;
-          this.emit(events, { type: 'info', key: tm(m), text: name + ' : victime d\u2019un DoPou, n\u2019est plus invulnérable' });
+          m.capeVuln = 2 + this.durOf(owner);
+          this.emit(events, { type: 'info', key: tm(m), text: name + ' : victime d\u2019un DoPou, vulnérable pendant 2 tours (Cape de Nileza)' });
         } else {
           this.emit(events, { type: 'info', key: tm(m), text: name + ' : Immortalité (Cape de Nileza), invulnérable' });
           return 0;
@@ -13235,7 +13233,7 @@ div.tile { cursor: default; }
       for (const p of this.state.players) { // Dofus Ébène : chaque mort inflige des dégâts au joueur adverse
         const foe = this.state.players[1 - p.idx];
         const dmg = this.dofusSum(p, 'deathPing'); // Ébène ignore les DO mais profite du % Dommages indirects
-        if (dmg > 0 && this.state.winner === null) this.dealDamage({ kind: 'player', p: foe }, dmg, { pierce: true, indirect: true }, events);
+        if (dmg > 0 && this.state.winner === null) this.dealDamage({ kind: 'player', p: foe }, dmg, { pierce: true, indirect: true, indirectSrc: p }, events);
       }
       for (const ally of owner.board) { // Gargrouille : chaque mort alliée la renforce
         const v = passiveOf(ally, 'vengeance');
@@ -13722,13 +13720,14 @@ div.tile { cursor: default; }
       });
       p.board.forEach((m) => { if (m.chim && m.chim.carry) { m.chim.carry = false; m.chimAlly = 0; } else if (m.shieldKeep > 0) { m.shieldKeep -= 1; } else { m.shield = Math.min(m.shield, m.shieldPerm || 0); m.chimAlly = 0; } }); // (Zobal : la part permanente reste) les boucliers durent jusqu'au tour suivant de leur propriétaire (Protection chimique : 2 tours)
       for (const m of p.board.slice()) {
-        const total = Math.max(0, m.poison.reduce((s, x) => s + x.amount, 0) - (m.poison.length ? this.equipPassiveSum(m, 'antiRad') : 0)); // Chapo Kalyptik (AntiRad) : −2 dégâts de poison par tour
+        const ipP = this.indirectOf(this.state.players[1 - p.idx]); // poison de sort : (base+DO) × (1 + %crit + %sorts + %indirects) ; autres poisons : montant × (1 + %indirects)
+        const total = Math.max(0, m.poison.reduce((s, x) => { const v = x.pre !== undefined ? (x.pup ? Math.ceil(((x.pre * (x.ppct + ipP)) / 100) - 1e-9) : Math.round((x.pre * (x.ppct + ipP)) / 100)) : Math.floor((x.amount * (100 + ipP)) / 100); return s + v; }, 0) - (m.poison.length ? this.equipPassiveSum(m, 'antiRad') : 0)); // Chapo Kalyptik (AntiRad) : −2 dégâts de poison par tour
         if (total > 0) {
           this.emit(events, { type: 'info', text: CARDS[m.cardId].name + ' : subit le poison' });
-          this.dealDamage({ kind: 'monster', m, owner: p }, total, { pierce: true, poison: true, noDoAdd: true }, events);
+          this.dealDamage({ kind: 'monster', m, owner: p }, total, { pierce: true, poison: true, noDoAdd: true, indirectDone: true }, events);
         }
         if (p.board.includes(m)) {
-          m.poison = m.poison.map((x) => ({ amount: x.amount, turns: x.turns - 1, src: x.src })).filter((x) => x.turns > 0);
+          m.poison = m.poison.map((x) => ({ amount: x.amount, turns: x.turns - 1, src: x.src, pre: x.pre, ppct: x.ppct, pup: x.pup })).filter((x) => x.turns > 0);
         }
       }
       for (const m of p.board.slice()) { // Prophétie (Bague des Prophètes) : si le porteur est en vie à l'échéance, un boss est invoqué
@@ -14274,6 +14273,7 @@ div.tile { cursor: default; }
       const foe = this.state.players[1 - p.idx];
       for (const m of p.board.slice()) {
         if (m.immoVuln > 0) m.immoVuln -= 1;
+        if (m.capeVuln > 0) m.capeVuln -= 1; // Cape de Nileza : fin de la vulnérabilité
         if (m.megaVuln > 0) m.megaVuln -= 1; // Megazorg : fin de la vulnérabilité d'un tour
         m.liqueur = false;
         if (m.liqCd > 0) m.liqCd -= 1;
@@ -14496,7 +14496,8 @@ div.tile { cursor: default; }
       this.mouthee(m, o, ctx, events);
       this.songeur(m, o, events);
       hits.forEach((h, i) => {
-        if (h.ally && o.board.includes(h.ally) && h.ally.hp > 0) { this.dealDamage({ kind: 'monster', m: h.ally, owner: o }, pctOf(per[i], 50), { push: true, redirected: true }, events); this.mortepousse(h.ally, o, events); this.songeur(h.ally, o, events); }
+        const ao = h.ally ? ((this.findMonster(h.ally.uid) || {}).owner || o) : o; // l'entité percutée peut être un boss en balade (Nileza) : son propriétaire est l'autre camp
+        if (h.ally && ao.board.includes(h.ally) && h.ally.hp > 0) { this.dealDamage({ kind: 'monster', m: h.ally, owner: ao }, pctOf(per[i], 50), { push: true, redirected: true }, events); this.mortepousse(h.ally, ao, events); this.songeur(h.ally, ao, events); }
       });
     }
 
@@ -14607,15 +14608,27 @@ div.tile { cursor: default; }
       const nq = this.nilQueue || [];
       this.nilQueue = [];
       for (const { m, owner, att } of nq) { // Cohobation (Nileza) : échange de place avec l'attaquant, puis 100 % de l'AT aux cibles adjacentes à l'arrivée
-        if (m.hp <= 0 || att.hp <= 0 || att === m || att.boss || att.jump || !owner.board.includes(m)) continue; // aucune autre contrainte (case libre, indéplaçable…)
+        if (m.hp <= 0 || att.hp <= 0 || att === m || att.boss || !owner.board.includes(m)) continue; // aucune autre contrainte (case libre, indéplaçable…)
+        if (att.jump && !(att.jump.swap && m.jump)) continue;
         const aOwner = this.state.players[1 - owner.idx];
         if (!aOwner.board.includes(att)) continue;
-        if (!this.swapWithBoss(m, owner, att, aOwner, events)) continue; // seul l'état indéplaçable bloque l'échange
-        const lane = this.slotsOf(aOwner), at = lane.indexOf(m);
+        let host = aOwner;
+        if (att.jump) { // Nileza et l'attaquant sont déjà en balade (échange précédent) : ils échangent leurs cases, comme Horlogerie
+          if (this.isRooted(m) || this.isRooted(att)) continue;
+          const locM = this.locationOf(m, owner), locA = this.locationOf(att, aOwner);
+          if (locM.slot < 0 || locA.slot < 0) continue;
+          this.materialize(owner); this.materialize(aOwner);
+          const place = (x, xo, loc) => { if (loc.board === xo.idx) { x.jump = null; x.slot = loc.slot; } else x.jump = { turns: 1e9, swap: true, slot: loc.slot }; };
+          place(m, owner, locA); place(att, aOwner, locM);
+          this.sortBoard(owner); this.sortBoard(aOwner);
+          this.emit(events, { type: 'move', key: tm(m), text: CARDS[m.cardId].name + ' : échange sa place avec ' + CARDS[att.cardId].name });
+          host = this.state.players[this.locationOf(m, owner).board];
+        } else if (!this.swapWithBoss(m, owner, att, aOwner, events)) continue; // seul l'état indéplaçable bloque l'échange
+        const lane = this.slotsOf(host), at = lane.indexOf(m);
         if (at < 0) continue;
         for (const x of [lane[at - 1], lane[at + 1]]) {
           if (!x || x === m || !(x.hp > 0)) continue;
-          const xo = (x.jump || aOwner.intruders.includes(x)) ? owner : aOwner;
+          const xo = (x.jump || host.intruders.includes(x)) ? this.state.players[1 - host.idx] : host;
           if (!xo.board.includes(x)) continue;
           this.emit(events, { type: 'info', key: tm(m), text: CARDS[m.cardId].name + ' : ' + CARDS[x.cardId].name + ' subit ' + m.at + ' dégât' + (m.at > 1 ? 's' : '') });
           this.dealDamage({ kind: 'monster', m: x, owner: xo }, m.at, {}, events);
@@ -14780,7 +14793,7 @@ div.tile { cursor: default; }
         const hg = passiveOf(m, 'harrogance');
         if (!hg || s.winner !== null || m.hp * 100 <= m.maxHp * hg.pct) continue;
         this.emit(events, { type: 'info', key: tm(m), text: CARDS[m.cardId].name + ' · Harrogance : ' + this.opp.name + ' perd ' + hg.hurt + ' PV' });
-        this.dealDamage({ kind: 'player', p: this.opp }, hg.hurt, { pierce: true, noDf: true, indirect: true, indirectSrc: this.me }, events);
+        this.dealDamage({ kind: 'player', p: this.opp }, hg.hurt, { pierce: true, indirect: true, indirectSrc: this.me, indirectMon: m }, events);
       }
       for (const m of this.me.board.slice()) { // SalKong (Ino Naru), Friendly Fire (Glouragan) : attaque automatique en fin de tour
         const ps = passiveOf(m, 'autoStrike');
@@ -15226,12 +15239,13 @@ div.tile { cursor: default; }
 
   /** Dofus Tacheté : texte d'un sort ou d'une action de monstre, nombres boostés en turquoise (comme pour les passifs).
    *  Les nombres sont repérés à partir des variables des effets ; ceux qu'on ne retrouve pas dans le texte restent inchangés. */
-  function effectNodesBase(text, effects, plus, dmg, dur) {
+  function effectNodesBase(text, effects, plus, dmg, dur, pv) {
     text = text || '';
-    if (!(plus || dmg || dur) || !effects || !effects.length) return [text];
+    if (!(plus || dmg || dur || pv) || !effects || !effects.length) return [text];
     const spans = [];
     const DMG_TYPES = ['damage', 'damageAll', 'damagePlayer'];
-    for (const e of effects) {
+    for (const [ei, e] of effects.entries()) {
+      const pe = pv && pv[ei] ? pv[ei] : null; // aperçu complet du moteur (DO, % indirects, %DF, critique, Tacheté…) quand il est calculable
       if (dur > 0 && e.type !== 'extendEffects' && !e.permanent && (typeof e.turns === 'number' ? e.turns > 0 : e.type === 'pm')) { // Dofus Sylvestre : durée augmentée en vert
         const v = typeof e.turns === 'number' ? e.turns : 1, re = new RegExp('(^|\\D)(' + v + ')( tours?)', 'g');
         let m;
@@ -15240,14 +15254,24 @@ div.tile { cursor: default; }
           if (!spans.some((x) => start < x.end && end > x.start)) { spans.push({ start, end, val: (v + dur) + ' tour' + (v + dur > 1 ? 's' : ''), cls: 'dur-up' }); break; }
         }
       }
-      if (dmg > 0 && DMG_TYPES.includes(e.type) && typeof e.amount === 'number' && e.amount > 0) { // DO du Joueur : la ligne de dégâts s'affiche en orange
-        const v = e.amount;
+      if (pe && e.type === 'poison' && typeof e.amount === 'number' && e.amount > 0 && (pe.n !== e.amount || pe.c !== pe.n)) { // poison : valeur par tour avec DO, % dommages indirects et %DF
+        const v = e.amount, re = new RegExp('(^|\\D)(' + v + ')(?!\\d)(?!\\s*(%|tours?\\b|PA\\b|AT\\b|carte))', 'g');
+        let m;
+        while ((m = re.exec(text))) {
+          const start = m.index + m[1].length, end = start + m[2].length;
+          if (!spans.some((x) => start < x.end && end > x.start)) { spans.push({ start, end, val: String(pe.n), cls: pe.n !== e.amount ? 'do-up' : 'crit-base', crit: pe.c !== pe.n ? pe.c : null }); break; }
+        }
+      }
+      if ((dmg > 0 || pe) && DMG_TYPES.includes(e.type) && typeof e.amount === 'number' && e.amount > 0) { // la ligne de dégâts s'affiche en orange avec tous les bonus
+        const v = e.amount, shown = pe ? pe.n : v + dmg;
+        const critDiff = !!pe && pe.c !== pe.n;
+        if (shown === v && !critDiff) continue;
         const res = [new RegExp('(^|\\D)(' + v + ')(?!\\d)(?=\\s*(de\\s+)?(dégâts|dommages))', 'g'), new RegExp('(^|\\D)(' + v + ')(?!\\d)(?!\\s*(%|tour|PA\\b|PV|AT\\b|carte))', 'g')];
         for (const re of res) {
           let m, done = false;
           while ((m = re.exec(text))) {
             const start = m.index + m[1].length, end = start + m[2].length;
-            if (!spans.some((x) => start < x.end && end > x.start)) { spans.push({ start, end, val: v + dmg, cls: 'do-up' }); done = true; break; }
+            if (!spans.some((x) => start < x.end && end > x.start)) { spans.push({ start, end, val: shown, cls: shown === v ? 'crit-base' : 'do-up', crit: critDiff ? pe.c : null }); done = true; break; }
           }
           if (done) break;
         }
@@ -15266,23 +15290,38 @@ div.tile { cursor: default; }
     if (spans.length === 0) return [text];
     spans.sort((a, b) => a.start - b.start);
     const out = []; let at = 0;
-    for (const sp of spans) { out.push(text.slice(at, sp.start), h('span', { class: sp.cls || 'tach-up' }, sp.val)); at = sp.end; }
+    for (const sp of spans) { out.push(text.slice(at, sp.start), h('span', { class: sp.cls || 'tach-up' }, sp.val)); if (sp.crit) out.push(' ', h('span', { class: 'crit-up', title: 'Dégâts en cas de critique' }, '(' + sp.crit + ')')); at = sp.end; }
     out.push(text.slice(at));
     return out;
   }
   /** Monstres : les DO du Joueur s'ajoutent aux dégâts calculés sur l'AT ; le total réel s'affiche en orange. */
-  function effectNodes(text, effects, plus, dmg, at, dur) {
-    const out = effectNodesBase(text, effects, plus, dmg, dur);
-    if (!(dmg > 0) || !(at > 0) || !effects) return out;
+  function effectNodes(text, effects, plus, dmg, at, dur, pv) {
+    const out = effectNodesBase(text, effects, plus, dmg, dur, pv);
+    if (!(at > 0) || !effects || !(dmg > 0 || pv)) return out;
     const one = (pct) => Math.max(1, Math.floor((at * pct) / 100));
-    const lines = []; let splash = 0;
-    for (const e of effects) {
-      if ((e.type !== 'damage' && e.type !== 'damageAll') || e.amount !== 'AT') continue;
-      lines.push(one(e.pct || 100) + dmg);
-      if (e.splashPct && !splash) splash = one(e.splashPct) + dmg;
-    }
-    if (!lines.length) return out;
-    out.push(' ', h('span', { class: 'do-up' }, '(' + lines.join(' + ') + ' dégâts' + (splash ? ', adjacents : ' + splash : '') + ')'));
+    const lines = [], pois = [], cLines = [], cPois = []; let splash = 0, changed = false, cSplash = 0, critAny = false;
+    effects.forEach((e, i) => {
+      const p = pv && pv[i] ? pv[i] : null;
+      if ((e.type === 'damage' || e.type === 'damageAll') && e.amount === 'AT') {
+        const plain = one(e.pct || 100), val = p ? p.n : plain + dmg;
+        lines.push(val); if (val !== plain) changed = true;
+        if (p && p.c !== p.n) { cLines.push(p.c); critAny = true; }
+        if (e.splashPct && !splash) { const sp0 = one(e.splashPct); splash = p && p.sn > 0 ? p.sn : sp0 + (p ? 0 : dmg); if (p && p.sc > 0 && p.sc !== splash) cSplash = p.sc; if (splash !== sp0) changed = true; }
+      } else if (e.type === 'poison' && e.amount === 'AT' && p) {
+        const plain = e.pct ? one(e.pct) : at;
+        pois.push(p.n); if (p.n !== plain) changed = true;
+        if (p.c !== p.n) { cPois.push(p.c); critAny = true; }
+      }
+    });
+    if ((!changed && !critAny) || (!lines.length && !pois.length)) return out;
+    const parts = [];
+    if (lines.length) parts.push(lines.join(' + ') + ' dégâts' + (splash ? ', adjacents : ' + splash : ''));
+    if (pois.length) parts.push('poison : ' + pois.join(' + ') + ' par tour');
+    if (changed) out.push(' ', h('span', { class: 'do-up' }, '(' + parts.join(' ; ') + ')'));
+    const cParts = [];
+    if (cLines.length && cLines.length === lines.length) cParts.push(cLines.join(' + ') + ' dégâts' + (cSplash ? ', adjacents : ' + cSplash : ''));
+    if (cPois.length) cParts.push('poison : ' + cPois.join(' + ') + ' par tour');
+    if (cParts.length) out.push(' ', h('span', { class: 'crit-up', title: 'Dégâts en cas de critique' }, '(critique : ' + cParts.join(' ; ') + ')'));
     return out;
   }
   FG.effectNodes = effectNodes;
@@ -15468,7 +15507,7 @@ div.tile { cursor: default; }
       out.push(head(def, FG.costText(def) + ' PA · AT ' + def.at + ' · PV ' + def.hp));
       if (o.showRarity) out.push(h('div', null, rarityTag(def)));
       out.push(h('div', { class: 'insp-actions' }, (def.actions || []).map((a) => {
-        const d = descBlock(effectNodes(actionText(a), a.effects, o.plus, o.dmg, def.at, o.dur));
+        const d = descBlock(effectNodes(actionText(a), a.effects, o.plus, o.dmg, def.at, o.dur, o.pv ? o.pv(a.effects, def, a) : null));
         return h('div', { class: 'act-row' + stackIf(d) }, h('b', null, a.name), d);
       })));
       for (const passive of FG.passivesOf(def)) {
@@ -15484,7 +15523,7 @@ div.tile { cursor: default; }
       out.push(head(def, def.cost + ' PA'));
       if (o.showRarity) out.push(h('div', null, rarityTag(def)));
       if (def.classOnly && FG.CLASSES[def.classOnly]) out.push(h('p', { class: 'insp-note' }, 'Sort de classe : réservé à la classe ' + FG.CLASSES[def.classOnly].name + '.' + (FG.isShopLocked(def) ? ' 1 exemplaire en boutique, puis en booster.' : '')));
-      out.push(descBlock(effectNodes(def.text, def.effects, o.plus, o.dmg, 0, o.dur)));
+      out.push(descBlock(effectNodes(def.text, def.effects, o.plus, o.dmg, 0, o.dur, o.pv ? o.pv(def.effects, null, def) : null)));
     } else {
       out.push(head(def, 'Gratuit · ' + FG.cardStatsText(def, o.equipMult || 1)));
       if (o.showRarity) out.push(h('div', null, rarityTag(def)));
@@ -16206,6 +16245,7 @@ div.tile { cursor: default; }
     const seals = m.noPassive ? null : FG.CardView.passiveSeals(def, activeKinds);
 
     const badges = [];
+    if (ui.match && ui.match.isInvulnerable(m)) badges.push(h('img', { class: 'badge-invuln', src: 'data:image/webp;base64,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', alt: 'Invulnérable', title: 'Invulnérable' }));
     if (m.shield > 0) badges.push(h('span', { class: 'badge shield' }, icon('shield'), m.shield));
     if (m.pb > 0) badges.push(h('span', { class: 'badge shield' }, icon('shield'), 'PB ' + m.pb));
     if (m.poison.length) badges.push(h('span', { class: 'badge poison' }, icon('drop'), poisonTotal(m)));
@@ -16309,7 +16349,8 @@ div.tile { cursor: default; }
     const turn = myTurn();
     const info = turn ? ui.match.playability(card.uid) : { ok: false, reason: 'Ce n’est pas votre tour.' };
     const mult = ui.match.equipMultiplier(state().players[HUMAN]);
-    const out = FG.CardView.detailNodes(card.cardId, { equipMult: mult, plus: ui.match.plusOneOf(state().players[HUMAN]), dmg: ui.match.damageBonusOf(state().players[HUMAN], null), dur: ui.match.durOf(state().players[HUMAN]) });
+    const out = FG.CardView.detailNodes(card.cardId, { equipMult: mult, plus: ui.match.plusOneOf(state().players[HUMAN]), dmg: ui.match.damageBonusOf(state().players[HUMAN], null), dur: ui.match.durOf(state().players[HUMAN]),
+      pv: (effects, mon, src) => { try { return effects && effects.length ? ui.match.previewDamage(state().players[HUMAN], null, effects, mon ? { monster: true, at: mon.at, hp: mon.hp, indirectPlayer: !!src && (src.target === 'player' || !!src.direct) } : { indirectPlayer: !!src && (src.target === 'player' || !!src.direct) }) : null; } catch (e) { return null; } } });
     const label = FG.isMonster(def) ? 'Invoquer' : def.type === 'spell' ? 'Lancer' : 'Équiper';
     out.push(h('div', null,
       h('button', { class: 'btn primary', type: 'button', disabled: !info.ok, onclick: () => playHandCard(card) },
@@ -16514,7 +16555,7 @@ div.tile { cursor: default; }
     const turn = myTurn() && mine;
     out.push(h('div', { class: 'insp-actions' }, FG.actionsOf(m).map((a, i) => {
       const info = turn ? ui.match.actionability(m.uid, i) : { ok: false, reason: '' };
-      const d = FG.descBlock([...FG.effectNodes(a.text, a.effects, ui.match.plusOneOf(state().players[ownerIdx]), ui.match.damageBonusOf(state().players[ownerIdx], m), m.at, ui.match.durOf(state().players[ownerIdx])), turn && !info.ok && info.reason ? ' (' + info.reason + ')' : '']);
+      const d = FG.descBlock([...FG.effectNodes(a.text, a.effects, ui.match.plusOneOf(state().players[ownerIdx]), ui.match.damageBonusOf(state().players[ownerIdx], m), m.at, ui.match.durOf(state().players[ownerIdx]), (() => { try { return a.effects && a.effects.length ? ui.match.previewDamage(state().players[ownerIdx], m, a.effects, { indirectPlayer: a.target === 'player' || !!a.direct }) : null; } catch (e) { return null; } })()), turn && !info.ok && info.reason ? ' (' + info.reason + ')' : '']);
       const row = h('div', { class: 'act-row' + (d.classList.contains('long') ? ' stack' : '') },
         mine
           ? h('button', { class: 'btn' + (info.ok ? ' primary' : ''), type: 'button', disabled: !info.ok, onclick: () => playMonsterAction(m, i) }, a.name)
@@ -17453,6 +17494,8 @@ div.tile { cursor: default; }
     { urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' },
     /* Relais TURN public de PeerJS : sans lui, deux joueurs en 4G/5G ou derrière un NAT strict ne peuvent pas se joindre. */
     { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+    /* Second relais public gratuit (TCP/443 passe presque partout) ; si indisponible, le relais de secours de signaling.js prend le relais. */
+    { urls: ['turn:staticauth.openrelay.metered.ca:80', 'turn:staticauth.openrelay.metered.ca:443', 'turns:staticauth.openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' },
   ];
 
   /**
@@ -17463,17 +17506,20 @@ div.tile { cursor: default; }
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS.concat((config && config.iceServers) || []) }); // les serveurs fournis s'ajoutent aux défauts
     let transport = null, opened = false;
     let remoteSet = false; const pendingCands = []; // candidats ICE reçus avant la description distante : mis en file, jamais perdus
+    let closedByUs = false;
     let watch = null; // garde-fou : sans lui, l'écran peut « charger à l'infini » quand aucun chemin réseau n'existe
     const startWatch = () => { if (watch || opened) return; watch = setTimeout(() => { if (!opened) { fail('Connexion impossible : aucun chemin réseau entre les deux appareils (relais TURN nécessaire).'); try { pc.close(); } catch (e) { /* ignoré */ } } }, 40000); };
     const flushCands = () => { startWatch(); remoteSet = true; pendingCands.splice(0).forEach((c) => pc.addIceCandidate(c).catch(() => { /* périmé : ignoré */ })); };
     const openCbs = [], failCbs = [];
-    const fail = (msg) => { failCbs.splice(0).forEach((f) => f(new Error(msg))); if (transport) transport._closed(); };
+    const fail = (msg) => { if (closedByUs) return; failCbs.splice(0).forEach((f) => f(new Error(msg))); if (transport) transport._closed(); };
 
     const wire = (ch) => {
       transport = makeTransport((t) => ch.send(t), () => { try { ch.close(); pc.close(); } catch (e) { /* déjà fermé */ } });
-      ch.onopen = () => { opened = true; clearTimeout(watch); openCbs.splice(0).forEach((f) => f(transport)); };
+      const onOpen = () => { if (opened) return; opened = true; clearTimeout(watch); openCbs.splice(0).forEach((f) => f(transport)); };
+      ch.onopen = onOpen;
       ch.onmessage = (e) => transport._receive(e.data);
       ch.onclose = () => transport._closed();
+      if (ch.readyState === 'open') onOpen(); // le canal reçu peut déjà être ouvert : l'évènement open ne viendra plus
     };
     if (initiator) wire(pc.createDataChannel('krosciculus', { ordered: true }));
     else pc.ondatachannel = (e) => wire(e.channel);
@@ -17500,7 +17546,7 @@ div.tile { cursor: default; }
         setTimeout(done, timeoutMs || 4000);
       }),
       localDescription: () => ({ type: pc.localDescription.type, sdp: pc.localDescription.sdp }),
-      close() { try { pc.close(); } catch (e) { /* ignoré */ } },
+      close() { closedByUs = true; clearTimeout(watch); try { pc.close(); } catch (e) { /* ignoré */ } },
     };
   }
 
@@ -17531,6 +17577,8 @@ div.tile { cursor: default; }
     signalingKey: 'peerjs',
     iceServers: null, // null = STUN + TURN PeerJS (transport.js). Pour ajouter VOTRE TURN (ajouté aux défauts) : [{ urls: ['turn:standard.relay.metered.ca:80', 'turn:standard.relay.metered.ca:443', 'turns:standard.relay.metered.ca:443?transport=tcp'], username: '…', credential: '…' }]
     guestTimeoutMs: 45000,
+    relayAfterMs: 9000, // canal direct pas ouvert au bout de ce délai : on passe par le serveur de rencontre (relais de secours)
+    forceRelay: false,  // test : toujours passer par le relais
   };
 
   const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sans I, L, O, 0, 1
@@ -17565,10 +17613,21 @@ div.tile { cursor: default; }
 
   const payloadOf = (m) => (m && m.payload && typeof m.payload === 'object' ? m.payload : {});
 
-  function cloudHost() {
+  /* ---------- relais de secours ----------
+   * Si le canal direct (WebRTC) ne s'ouvre pas — typiquement deux joueurs en 4G/5G, ou un réseau qui bloque le relais TURN —,
+   * les messages de jeu passent par le serveur de rencontre (même socket, même salle). Un peu moins rapide, mais cela marche
+   * partout où le serveur est joignable. L'INVITÉ décide du passage en relais (ctl « start »), l'hôte répond « ready ».
+   * Les messages de relais sont des messages CANDIDATE marqués { kr: 1 } : le serveur les transmet tels quels. */
+  const MAX_REOPEN = 8;
+  const relayMsg = (dst, extra) => ({ type: 'CANDIDATE', dst, payload: Object.assign({ kr: 1 }, extra) });
+  const isRelay = (m) => !!(m && m.type === 'CANDIDATE' && m.payload && typeof m.payload === 'object' && m.payload.kr === 1);
+  const tell = (cb, text) => { try { if (cb) cb(text); } catch (e) { /* affichage : jamais bloquant */ } };
+
+  function cloudHost(onStatus) {
     let code = rand(6, ALPHABET), token = rand(12, ALPHABET), sig = null, link = null, cancelled = false, peer = null;
     /* announced : le code a été montré au joueur. Jeton fixe : après une coupure, le serveur rend la salle à son propriétaire. */
-    let announced = false, reopens = 0, reopenTimer = null;
+    let announced = false, reopens = 0, reopenTimer = null, offerTimer = null;
+    let rtcOpen = false, relayOn = false, relayTransport = null;
     let resolveReady, rejectReady, resolveConn, rejectConn;
     const ready = new Promise((res, rej) => { resolveReady = res; rejectReady = rej; });
     const connected = new Promise((res, rej) => { resolveConn = res; rejectConn = rej; });
@@ -17577,20 +17636,61 @@ div.tile { cursor: default; }
 
     /* Le téléphone coupe le socket dès que l'appli passe en arrière-plan (ex. pour envoyer le code par message) : on reprend la même salle. */
     function scheduleReopen() {
-      if (cancelled || link) return;
-      if (++reopens > 12) return fail(new Error('Serveur de rencontre injoignable.'));
+      if (cancelled || rtcOpen) return;
+      if (++reopens > MAX_REOPEN + 4) { if (relayTransport) { relayTransport._closed(); cancel(); return; } return fail(new Error('Serveur de rencontre injoignable.')); }
       clearTimeout(reopenTimer);
-      reopenTimer = setTimeout(() => { if (!cancelled && !link) connect(0); }, Math.min(800 * reopens, 5000));
+      reopenTimer = setTimeout(() => { if (!cancelled && !rtcOpen) connect(0); }, Math.min(800 * reopens, 5000));
     }
     const onVisible = () => {
-      if (document.visibilityState !== 'visible' || cancelled || link || !announced || !sig) return;
+      if (document.visibilityState !== 'visible' || cancelled || rtcOpen || !announced || !sig) return;
       // Le socket est peut-être mort sans l'avoir signalé : on le ferme, puis on rouvre la salle (même jeton) une fois la fermeture traitée par le serveur.
       const old = sig; sig = null; old.close();
-      setTimeout(() => { if (!cancelled && !link && !sig) connect(0); }, 300);
+      setTimeout(() => { if (!cancelled && !rtcOpen && !sig) connect(0); }, 300);
     };
 
+    async function onOffer(m) {
+      if (link || relayOn || typeof m.src !== 'string') return; // un seul adversaire par salle
+      const p = payloadOf(m);
+      if (!p.sdp || typeof p.sdp.sdp !== 'string') return;
+      peer = m.src;
+      tell(onStatus, 'Un adversaire arrive : connexion directe…');
+      const l = (link = Net.createRtcLink(false, config));
+      l.onCandidate((c) => { if (sig) sig.send({ type: 'CANDIDATE', dst: peer, payload: { candidate: c, type: 'data', connectionId: p.connectionId } }); });
+      /* Canal direct ouvert : le serveur ne sert plus. Échec : on attend que l'invité demande le relais (offerTimer = garde-fou). */
+      l.opened().then((t) => { if (link !== l || relayOn || cancelled) return; rtcOpen = true; clearTimeout(offerTimer); t.mode = 'direct'; if (sig) sig.close(); resolveConn(t); }, () => { /* relais de secours */ });
+      clearTimeout(offerTimer);
+      offerTimer = setTimeout(() => { if (!rtcOpen && !relayOn) fail(new Error('Connexion impossible : l’adversaire ne répond plus.')); }, 75000);
+      try {
+        const answer = await l.acceptOffer(p.sdp);
+        if (sig) sig.send({ type: 'ANSWER', dst: peer, payload: { sdp: answer, type: 'data', connectionId: p.connectionId } });
+      } catch (e) { /* le relais de secours prendra le relais */ }
+    }
+
+    function onRelay(m) {
+      const p = payloadOf(m);
+      if (!relayOn) {
+        if (p.ctl !== 'start' || rtcOpen) return;
+        if (peer && m.src !== peer) return;
+        peer = m.src; relayOn = true;
+        clearTimeout(offerTimer);
+        if (link) link.close(); // plus utile : le relais prend sa place
+        relayTransport = Net.makeTransport(
+          (text) => { if (sig) sig.send(relayMsg(peer, { d: text })); },
+          () => { if (sig) sig.send(relayMsg(peer, { ctl: 'bye' })); cancel(); });
+        relayTransport.mode = 'relais';
+        if (sig) sig.send(relayMsg(peer, { ctl: 'ready' }));
+        tell(onStatus, 'Connexion via le serveur de rencontre…');
+        resolveConn(relayTransport);
+        return;
+      }
+      if (m.src !== peer) return;
+      if (p.ctl === 'start') { if (sig) sig.send(relayMsg(peer, { ctl: 'ready' })); } // l'invité n'a pas reçu notre réponse : on la renvoie
+      else if (p.ctl === 'bye') relayTransport._closed();
+      else if (typeof p.d === 'string') relayTransport._receive(p.d);
+    }
+
     function connect(attempt) {
-      const s = (sig = openSignal(roomId(code), async (m) => {
+      const s = (sig = openSignal(roomId(code), (m) => {
         if (cancelled || s !== sig) return;
         if (m.type === 'ID-TAKEN') {
           if (!announced && attempt < 5) { s.close(); code = rand(6, ALPHABET); token = rand(12, ALPHABET); connect(attempt + 1); }
@@ -17599,58 +17699,103 @@ div.tile { cursor: default; }
           return;
         }
         if (m.type === 'OPEN') { announced = true; reopens = 0; resolveReady({ code }); }
-        else if (m.type === 'OFFER' && !link && typeof m.src === 'string') { // un seul adversaire par salle
-          peer = m.src;
-          const p = payloadOf(m);
-          if (!p.sdp || typeof p.sdp.sdp !== 'string') return;
-          link = Net.createRtcLink(false, config);
-          link.onCandidate((c) => sig.send({ type: 'CANDIDATE', dst: peer, payload: { candidate: c, type: 'data', connectionId: p.connectionId } }));
-          const answer = await link.acceptOffer(p.sdp);
-          sig.send({ type: 'ANSWER', dst: peer, payload: { sdp: answer, type: 'data', connectionId: p.connectionId } });
-          link.opened().then((t) => { sig.close(); resolveConn(t); }, fail);
-        } else if (m.type === 'CANDIDATE' && link && m.src === peer) {
+        else if (m.type === 'OFFER') onOffer(m);
+        else if (isRelay(m)) { if (typeof m.src === 'string') onRelay(m); }
+        else if (m.type === 'CANDIDATE' && link && m.src === peer && !relayOn) {
           const c = payloadOf(m).candidate;
           if (c && typeof c.candidate === 'string') link.addCandidate(c);
         }
       }, () => { if (announced) scheduleReopen(); }, token));
       s.opened.catch((e) => { if (s === sig && !announced) fail(e); }); // après l'annonce, un échec passe par scheduleReopen
     }
-    function cancel() { cancelled = true; clearTimeout(reopenTimer); document.removeEventListener('visibilitychange', onVisible); if (sig) sig.close(); if (link && !link.pcOpen) link.close(); }
+    function cancel() { cancelled = true; clearTimeout(reopenTimer); clearTimeout(offerTimer); document.removeEventListener('visibilitychange', onVisible); if (sig) sig.close(); if (link) link.close(); }
     document.addEventListener('visibilitychange', onVisible);
     connect(0);
     return { ready, connected, cancel };
   }
 
-  function cloudGuest(rawCode) {
+  function cloudGuest(rawCode, onStatus) {
     const code = normalizeCode(rawCode);
-    let sig = null, link = null, cancelled = false, timer = null;
+    let sig = null, link = null, cancelled = false, timer = null, relayTimer = null, retryTimer = null, reopenTimer = null;
+    let rtcOpen = false, relayOn = false, relayTransport = null, reopens = 0;
     let resolveConn, rejectConn;
     const connected = new Promise((res, rej) => { resolveConn = res; rejectConn = rej; });
     connected.catch(() => {});
     const ready = Promise.resolve({});
     const fail = (e) => { rejectConn(e); cancel(); };
-    function cancel() { cancelled = true; clearTimeout(timer); if (sig) sig.close(); if (link) link.close(); }
+    function cancel() { cancelled = true; clearTimeout(timer); clearTimeout(relayTimer); clearTimeout(retryTimer); clearTimeout(reopenTimer); if (sig) sig.close(); if (link) link.close(); }
     if (!CODE_RE.test(code)) { fail(new Error('Code de salle invalide.')); return { ready, connected, cancel }; }
 
     const host = roomId(code), connectionId = 'dc_' + rand(10, ALPHABET);
+    const myId = 'krosciculus-' + rand(10, ALPHABET), myToken = rand(12, ALPHABET);
     timer = setTimeout(() => fail(new Error('Pas de réponse : vérifiez le code, ou essayez l’échange de codes manuel.')), config.guestTimeoutMs);
-    link = Net.createRtcLink(true, config);
-    sig = openSignal('krosciculus-' + rand(10, ALPHABET), async (m) => {
+
+    /** Le canal direct n'aboutit pas : on demande à l'hôte de passer par le serveur de rencontre. */
+    function startRelay() {
+      if (cancelled || rtcOpen || relayOn) return;
+      relayOn = true;
+      clearTimeout(relayTimer); clearTimeout(timer);
+      if (link) { link.close(); link = null; }
+      tell(onStatus, 'Connexion directe impossible : passage par le serveur de rencontre…');
+      timer = setTimeout(() => fail(new Error('Pas de réponse de la salle : vérifiez le code, puis réessayez.')), 25000);
+      const knock = () => { if (cancelled || relayTransport) return; if (sig) sig.send(relayMsg(host, { ctl: 'start' })); retryTimer = setTimeout(knock, 2500); };
+      knock();
+    }
+
+    function onRelay(m) {
+      const p = payloadOf(m);
+      if (!relayOn) return;
+      if (!relayTransport) {
+        if (p.ctl !== 'ready') return;
+        clearTimeout(timer); clearTimeout(retryTimer);
+        relayTransport = Net.makeTransport(
+          (text) => { if (sig) sig.send(relayMsg(host, { d: text })); },
+          () => { if (sig) sig.send(relayMsg(host, { ctl: 'bye' })); cancel(); });
+        relayTransport.mode = 'relais';
+        resolveConn(relayTransport);
+        return;
+      }
+      if (p.ctl === 'bye') relayTransport._closed();
+      else if (typeof p.d === 'string') relayTransport._receive(p.d);
+    }
+
+    function onSignal(m) {
       if (cancelled) return;
+      if (isRelay(m)) { if (m.src === host) onRelay(m); return; }
       if (m.type === 'ANSWER' && m.src === host) {
         const p = payloadOf(m);
-        if (p.sdp && typeof p.sdp.sdp === 'string') link.acceptAnswer(p.sdp).catch(() => fail(new Error('Réponse de l’hôte invalide.')));
+        if (link && p.sdp && typeof p.sdp.sdp === 'string') link.acceptAnswer(p.sdp).catch(() => startRelay());
       } else if (m.type === 'CANDIDATE' && m.src === host) {
         const c = payloadOf(m).candidate;
-        if (c && typeof c.candidate === 'string') link.addCandidate(c);
-      } else if (m.type === 'EXPIRE' || m.type === 'ERROR') fail(new Error('Salle introuvable : vérifiez le code.'));
-    }, () => {});
-    sig.opened.then(async () => {
-      link.onCandidate((c) => sig.send({ type: 'CANDIDATE', dst: host, payload: { candidate: c, type: 'data', connectionId } }));
-      const offer = await link.createOffer();
-      sig.send({ type: 'OFFER', dst: host, payload: { sdp: offer, type: 'data', connectionId, label: 'krosciculus', reliable: true, serialization: 'json' } });
+        if (link && c && typeof c.candidate === 'string') link.addCandidate(c);
+      } else if (m.type === 'EXPIRE' || m.type === 'ERROR') {
+        if (!relayOn) fail(new Error('Salle introuvable : vérifiez le code.'));
+      }
+    }
+
+    /* Socket coupé (téléphone en arrière-plan, réseau mobile instable) : on reprend la même identité, sans abandonner la partie. */
+    function reopen() {
+      if (cancelled || rtcOpen) return;
+      if (++reopens > MAX_REOPEN) { if (relayTransport) { relayTransport._closed(); cancel(); } else fail(new Error('Serveur de rencontre injoignable.')); return; }
+      clearTimeout(reopenTimer);
+      reopenTimer = setTimeout(() => { if (!cancelled && !rtcOpen) openSig(); }, Math.min(800 * reopens, 4000));
+    }
+    function openSig() {
+      const s = (sig = openSignal(myId, (m) => { if (s === sig) onSignal(m); }, () => { if (s === sig) reopen(); }, myToken));
+      return s;
+    }
+
+    openSig().opened.then(async () => {
+      if (cancelled) return;
+      if (config.forceRelay) return startRelay(); // test : on saute le canal direct
+      const l = (link = Net.createRtcLink(true, config));
+      l.onCandidate((c) => { if (sig) sig.send({ type: 'CANDIDATE', dst: host, payload: { candidate: c, type: 'data', connectionId } }); });
+      l.opened().then((t) => { if (link !== l || relayOn || cancelled) return; rtcOpen = true; clearTimeout(timer); clearTimeout(relayTimer); t.mode = 'direct'; if (sig) sig.close(); resolveConn(t); }, () => startRelay());
+      const offer = await l.createOffer();
+      if (sig) sig.send({ type: 'OFFER', dst: host, payload: { sdp: offer, type: 'data', connectionId, label: 'krosciculus', reliable: true, serialization: 'json' } });
+      tell(onStatus, 'Connexion directe à l’hôte…');
+      relayTimer = setTimeout(startRelay, config.relayAfterMs);
     }).catch(fail);
-    link.opened().then((t) => { clearTimeout(timer); sig.close(); resolveConn(t); }, fail);
     return { ready, connected, cancel };
   }
 
@@ -17933,7 +18078,7 @@ div.tile { cursor: default; }
       },
     });
     session.open();
-    say('Connexion établie, préparation de la partie…');
+    say('Connexion établie' + (transport && transport.mode === 'relais' ? ' (via le serveur)' : '') + ', préparation de la partie…');
   }
 
   function track(c, role, onReady) {
@@ -17943,8 +18088,8 @@ div.tile { cursor: default; }
   }
 
   /* ---------- actions ---------- */
-  const host = () => { if (!deckOk()) return; view = 'hosting'; say('Création de la salle…'); track(Net.cloudHost(), 'host', (r) => { roomCode = r.code; say('En attente d’un adversaire…'); }); };
-  const join = () => { if (!deckOk()) return; view = 'joining'; say('Connexion à la salle…'); track(Net.cloudGuest(codeBox.value), 'guest', () => {}); };
+  const host = () => { if (!deckOk()) return; view = 'hosting'; say('Création de la salle…'); const c = Net.cloudHost((t) => { if (connector === c) say(t); }); track(c, 'host', (r) => { roomCode = r.code; say('En attente d’un adversaire…'); }); };
+  const join = () => { if (!deckOk()) return; view = 'joining'; say('Connexion à la salle…'); const c = Net.cloudGuest(codeBox.value, (t) => { if (connector === c) say(t); }); track(c, 'guest', () => {}); };
   const manualHostStart = () => { if (!deckOk()) return; view = 'manualHost'; say('Création de l’invitation…'); track(Net.manualHost(), 'host', (r) => { invitation = r.invitation; say('Envoyez ce code à votre adversaire, puis collez sa réponse.'); }); };
   const manualGuestStart = () => { if (!deckOk()) return; view = 'manualGuest'; say('Création de la réponse…'); track(Net.manualGuest(inviteBox.value), 'guest', (r) => { answer = r.answer; say('Envoyez ce code de réponse à l’hôte, puis patientez.'); }); };
   const manualAnswer = async () => { try { await connector.acceptAnswer(answerBox.value); say('Connexion en cours…'); } catch (e) { say('Code de réponse invalide.', true); } };
@@ -18055,8 +18200,15 @@ div.tile { cursor: default; }
     return null;
   }
 
+  /** Réglage « Couper les animations » des boosters (clé fg-noanim) : classe sur <html>, lue par le CSS et par mythicFx. */
+  const animOff = () => { try { return localStorage.getItem('fg-noanim') === '1'; } catch (e) { return false; } };
+  const applyAnimSetting = () => document.documentElement.classList.toggle('no-pack-anim', animOff());
+  applyAnimSetting();
+  FG.PackAnim = { off: animOff, set: (v) => { try { localStorage.setItem('fg-noanim', v ? '1' : '0'); } catch (e) { /* ignoré */ } applyAnimSetting(); } };
+
   /** Animation plein écran d'un drop mythique : charge, onde de choc, rayons, flash, étincelles, secousse. */
   function mythicFx(rect) {
+    if (animOff()) return; // animations coupées
     if (!rect) rect = { left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0 };
     const cx = Math.round(rect.left + rect.width / 2), cy = Math.round(rect.top + rect.height / 2);
     const colors = ['#ff4f7b', '#ffd0ff', '#b04bff', '#6be6ff', '#fff6b0'];
@@ -18589,11 +18741,17 @@ div.tile { cursor: default; }
           CARDS[c.id].name + (c.drawn > 1 ? ' ×' + c.drawn : ''), c.isNew ? h('b', { class: 'chip-new', title: 'Nouvelle carte' }, 'N') : null)))) : null);
   }
 
+  /** Ligne de résumé : en booster à l'unité, les nouvelles cartes ne sont comptées qu'une fois retournées (pas de spoil). */
+  function packSummary() {
+    const packId = view.packId || 'standard';
+    const news = view.pack.filter((c, i) => c.isNew && (view.boosters !== 1 || view.revealed.has(i))).length;
+    return plural(view.pack.length, 'carte') + (news > 0 ? ', dont ' + plural(news, 'nouvelle') : '') + ' · ' + plural(Save.boosters(packId), 'booster') + ' en réserve' + (packId !== 'standard' ? ' (' + PACKS[packId].label + ')' : '') + '.';
+  }
+
   /** Fenêtre d'ouverture : toutes les cartes et les boutons restent à l'écran, sans quitter l'onglet ni faire défiler la page. */
   function showPacks() {
     const single = view.boosters === 1;
-    const news = view.pack.filter((c) => c.isNew).length;
-    const body = single ? h('div', { class: 'grid reveal-grid' + (view.pack.length <= 5 ? ' dense' : '') }, view.pack.map((c, i) => flipCard(c, i))) : multiView(view.pack);
+    const body = single ? h('div', { class: 'grid reveal-grid single' + (view.pack.length <= 5 ? ' dense' : '') }, view.pack.map((c, i) => flipCard(c, i))) : multiView(view.pack);
     const packId = view.packId || 'standard';
     const stock = Save.boosters(packId);
     const actions = [
@@ -18605,7 +18763,7 @@ div.tile { cursor: default; }
     $('packs-body').replaceChildren(...[
       h('h2', null, single ? 'Vos cartes' : plural(view.boosters, 'booster') + ' ouverts'),
       packId !== 'standard' ? h('p', { class: 'insp-note' }, PACKS[packId].label) : null,
-      h('p', null, plural(view.pack.length, 'carte') + (news > 0 ? ', dont ' + plural(news, 'nouvelle') : '') + ' · ' + plural(stock, 'booster') + ' en réserve' + (packId !== 'standard' ? ' (' + PACKS[packId].label + ')' : '') + '.'),
+      h('p', { id: 'packs-sum' }, packSummary()),
       body].filter(Boolean));
     $('packs-actions').replaceChildren(...actions);
     $('packs').hidden = false;
@@ -18629,6 +18787,7 @@ div.tile { cursor: default; }
         btn.setAttribute('aria-label', def.name + (c.isNew ? ', nouvelle carte' : ''));
         const all = $('btn-reveal-all');
         if (all) all.disabled = view.revealed.size >= view.pack.length;
+        const sum = $('packs-sum'); if (sum) sum.textContent = packSummary();
         checkAchievements(); // la carte est révélée : elle compte désormais pour les succès
       },
     },
@@ -18966,6 +19125,11 @@ div.tile { cursor: default; }
           h('input', { type: 'range', min: '0', max: '100', value: String(Math.round(FG.Music.get().vol * 100)), 'aria-label': 'Volume de la musique',
             oninput: (ev) => FG.Music.set({ vol: Number(ev.target.value) / 100 }) }))),
       h('section', { class: 'card-box' },
+        h('h2', null, 'Animations'),
+        h('p', null, 'Coupe toutes les animations du jeu : combat (secousses, chiffres flottants, cibles clignotantes), halos et reflets des cartes, ouverture des boosters et drops mythiques. Les sons ne changent pas.'),
+        h('button', { class: 'btn' + (FG.PackAnim.off() ? ' primary' : ''), type: 'button', role: 'switch', 'aria-checked': String(FG.PackAnim.off()), onclick: () => { FG.PackAnim.set(!FG.PackAnim.off()); render(); } }, FG.PackAnim.off() ? '\u2714 Animations coupées (touchez pour les remettre)' : 'Couper les animations'),
+        h('p', { class: 'deck-line ' + (FG.PackAnim.off() ? 'ok' : ''), role: 'status' }, FG.PackAnim.off() ? 'Réglage actif : les animations sont coupées.' : 'Réglage inactif : les animations sont activées.')),
+      h('section', { class: 'card-box' },
         h('h2', null, 'Noms et images'),
         h('p', null, 'Corrigez le nom et l’image de chaque carte et de chaque classe.'),
         h('button', { class: 'btn', type: 'button', onclick: () => { FG.Nav.show('editor'); FG.Editor.open(); } }, 'Personnaliser les noms et images')),
@@ -18983,6 +19147,10 @@ div.tile { cursor: default; }
         h('button', { class: 'btn', type: 'button', onclick: () => doImport() }, 'Charger cette sauvegarde'),
         view.message ? h('p', { class: 'deck-line', role: 'status' }, view.message) : null),
       h('section', { class: 'card-box' },
+        h('h2', null, 'Cache du jeu'),
+        h('p', null, 'Recharge la dernière version du jeu (utile si le multijoueur ou une nouveauté ne fonctionne pas). Votre progression, vos cartes et votre deck sont conservés.'),
+        h('button', { class: 'btn', type: 'button', onclick: (e) => clearGameCache(e.currentTarget) }, 'Vider le cache et recharger')),
+      h('section', { class: 'card-box' },
         h('h2', null, 'Réinitialiser'),
         h('p', null, 'Efface Kamas, collection, deck et résultats, et recommence avec le deck de départ.'),
         view.resetArmed
@@ -18991,6 +19159,17 @@ div.tile { cursor: default; }
               h('button', { class: 'btn', type: 'button', onclick: () => { view.resetArmed = false; render(); } }, 'Annuler'))
           : h('button', { class: 'btn', type: 'button', onclick: () => { view.resetArmed = true; render(); } }, 'Réinitialiser la progression')),
     ];
+  }
+
+  /** Vide le cache du navigateur pour ce jeu (service worker + caches), sans toucher à la sauvegarde (localStorage), puis recharge. */
+  async function clearGameCache(btn) {
+    btn.disabled = true; btn.textContent = 'Nettoyage…';
+    try {
+      if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); await Promise.all(regs.map((r) => r.unregister())); }
+      if (window.caches) { const keys = await caches.keys(); await Promise.all(keys.map((k) => caches.delete(k))); }
+    } catch (e) { /* on recharge quand même */ }
+    const u = new URL(location.href); u.searchParams.set('v', String(Date.now()));
+    location.replace(u.toString());
   }
 
   function copy(box) {
