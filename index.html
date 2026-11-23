@@ -8838,7 +8838,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       decks: [], // decks enregistrés : { id, name, classId, cards }
       boosters: 0, // boosters achetés en boutique et pas encore ouverts
       packs: Object.fromEntries(Object.keys(FG.PACKS).filter((k) => k !== 'standard').map((k) => [k, 0])), // boosters spéciaux en réserve (FG.PACKS)
-      flags: ['reset-colere-cupid', 'reset-doublons-fouet'], // succès liés à un évènement (partie, ouverture de booster) ; + migration Colère de Iop / Cupidité déjà faite
+      flags: ['reset-colere-cupid', 'reset-doublons-fouet', 'rollback-kamas-2026-11-23'], // succès liés à un évènement (partie, ouverture de booster) ; + migration Colère de Iop / Cupidité déjà faite
       stats: { wins: 0, losses: 0, pvpWins: 0, pvpLosses: 0, boosters: 0, mythics: 0, winsIop: 0, winsEcaflip: 0, winsSacrieur: 0, winsOsamodas: 0, winsSteamer: 0, winsXelor: 0, winsSadida: 0, winsOuginak: 0, winsEnutrof: 0, winsRoublard: 0, winsZobal: 0, winsCra: 0, winsSram: 0, winsEniripsa: 0, winsPandawa: 0, winsFeca: 0 },
       achieved: [], // identifiants des succès déjà débloqués
       claimed: [], // succès dont la récompense a été récupérée
@@ -8887,6 +8887,8 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     const SHOP_RESET = 'reset-colere-cupid'; // une seule fois : Colère de Iop et Cupidité sont retirées des collections, il faut les acheter en boutique
     if (!(Array.isArray(raw.flags) && raw.flags.includes(SHOP_RESET))) { delete collection.colere; delete collection.cupidite; }
     const DEDUP = 'reset-doublons-fouet'; // une seule fois : les doublons du Fouet (au-delà de 1 exemplaire) sont retirés des collections existantes (le deck est ajusté plus bas)
+    const ROLLBACK = 'rollback-kamas-2026-11-23'; // remise à zéro : Kamas plafonnés à 5000, boosters en réserve retirés
+    const ROLLBACK_KAMAS = 5000;
     if (!(Array.isArray(raw.flags) && raw.flags.includes(DEDUP))) if (collection.fouet > 1) collection.fouet = 1;
     if (Object.keys(collection).length === 0) return null;
 
@@ -8923,17 +8925,18 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     const pvpRank = parseRank(raw.pvpRank, FG.LEAGUE_RULES.pvp);
     // anciennes sauvegardes : pas de récompense rétroactive (la league actuelle est considérée comme déjà atteinte)
     const pvpBestLeague = Math.max(pvpRank.league, clampInt(raw.pvpBestLeague, 0, FG.LEAGUES.length - 1));
+    const rolledBack = Array.isArray(raw.flags) && raw.flags.includes(ROLLBACK);
     return {
       version: VERSION,
-      kamas: clampInt(raw.kamas, 0, MAX_KAMAS),
+      kamas: clampInt(raw.kamas, 0, rolledBack ? MAX_KAMAS : ROLLBACK_KAMAS),
       freeClock: Number.isFinite(Number(raw.freeClock)) && Number(raw.freeClock) > 0 ? Math.min(Date.now(), Math.floor(Number(raw.freeClock))) : Date.now(),
       collection,
       skins,
       deck: { classId, cards },
       decks: parseSavedDecks(raw.decks),
-      boosters: clampInt(raw.boosters, 0, MAX_STOCK),
-      packs: Object.fromEntries(Object.keys(FG.PACKS).filter((k) => k !== 'standard').map((k) => [k, clampInt(rawPacks[k], 0, MAX_STOCK)])),
-      flags: Array.from(new Set([SHOP_RESET, DEDUP].concat(Array.isArray(raw.flags) ? raw.flags.filter((x) => typeof x === 'string' && x.length <= 40) : []))).slice(0, 100),
+      boosters: rolledBack ? clampInt(raw.boosters, 0, MAX_STOCK) : 0,
+      packs: Object.fromEntries(Object.keys(FG.PACKS).filter((k) => k !== 'standard').map((k) => [k, rolledBack ? clampInt(rawPacks[k], 0, MAX_STOCK) : 0])),
+      flags: Array.from(new Set([SHOP_RESET, DEDUP, ROLLBACK].concat(Array.isArray(raw.flags) ? raw.flags.filter((x) => typeof x === 'string' && x.length <= 40) : []))).slice(0, 100),
       stats: {
         wins: clampInt(rawStats.wins, 0, MAX_STAT),
         losses: clampInt(rawStats.losses, 0, MAX_STAT),
