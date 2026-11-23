@@ -1363,7 +1363,46 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
 .ach2.claimed .ach2-ic { opacity: .85; }
 .ach2.claimed .ach2-head b { color: #a8e0c8; }
 .col-empty { padding: 18px; border-radius: 14px; border: 1px dashed var(--line); text-align: center; font-weight: 700; color: var(--muted); }
-@media (orientation: landscape) and (min-width: 560px) { .ach-list2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (orientation: landscape) and (min-width: 900px) { .ach-list2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- Succès par catégories : barre latérale (paysage) / rangée défilante (portrait) ---------- */
+.ach-layout { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.ach-main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ach-cats { position: sticky; top: 0; z-index: 15; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; margin: 0 -4px; padding: calc(6px + env(safe-area-inset-top, 0px)) 4px 6px; background: #0f1518; }
+.ach-cats::-webkit-scrollbar { display: none; }
+@supports (backdrop-filter: blur(4px)) { .ach-cats { background: #0f1518cc; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); } }
+.ach-cat { position: relative; flex: none; min-height: 40px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: #fff; font: inherit; font-weight: 800; font-size: 13px; cursor: pointer; text-align: left; }
+.ach-cat:active { filter: brightness(1.25); }
+.ach-cat-ic { flex: none; width: 20px; text-align: center; font-size: 16px; }
+.ach-cat-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ach-cat-pct { flex: none; white-space: nowrap; margin-left: auto; padding-left: 6px; font-size: 12px; color: var(--muted); }
+.ach-cat-pct.full { color: var(--mine); }
+.ach-cat-badge { flex: none; min-width: 18px; padding: 1px 6px; border-radius: 999px; background: var(--gold); color: var(--gold-ink); font-size: 11px; font-weight: 800; text-align: center; }
+.ach-cat[aria-pressed="true"] { border-color: var(--gold); background: linear-gradient(180deg, #3a3217, #2a2a1c); box-shadow: 0 0 10px #e3ac3d44; }
+.ach-cat[aria-pressed="true"] .ach-cat-name { color: #ffe08a; }
+.ach-h { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 20px; line-height: 1.1; color: #fff; text-shadow: 0 2px 0 #0006; }
+.ach-h .n { padding: 1px 8px; border-radius: 999px; background: var(--gold); color: var(--gold-ink); font-family: inherit; font-size: 12px; font-weight: 800; text-shadow: none; }
+.ach-block { display: flex; flex-direction: column; gap: 8px; }
+.ach-sum { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.ach-card { position: relative; display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 14px; border: 1px solid var(--line); background: linear-gradient(180deg, #1d2a31, #172126); color: #fff; font: inherit; text-align: left; cursor: pointer; }
+.ach-card:hover { filter: brightness(1.12); }
+.ach-card.full { border-color: #5bb08f66; background: linear-gradient(135deg, #17382f, #172126 70%); }
+.ach-card-ic { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: #0b1114; border: 2px solid var(--line); }
+.ach-card.full .ach-card-ic { border-color: var(--mine); }
+.ach-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ach-card-body b { font-size: 14px; }
+.ach-card-meta { font-size: 11.5px; font-weight: 800; color: var(--muted); }
+.ach-card .ach-cat-badge { position: absolute; top: 8px; right: 8px; }
+.ach-cathead { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center; }
+.ach-cathead .ach2-track { grid-column: 1 / -1; }
+.ach-cathead-pct { font-size: 12px; font-weight: 800; color: var(--muted); }
+.ach-filters { margin: 0; }
+@media (orientation: landscape) and (min-width: 560px) {
+  .ach-layout { display: grid; grid-template-columns: 212px minmax(0, 1fr); gap: 12px; align-items: start; }
+  .ach-cats { top: 8px; flex-direction: column; overflow-x: visible; overflow-y: auto; max-height: calc(100vh - 16px); margin: 0; padding: 6px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .ach-cat { width: 100%; min-height: 38px; }
+  .ach-cat-badge { order: 3; }
+}
 
 /* ---------- onglets Boutique et Boosters (refonte : bandeau, barre collante, paquets en cartes colorées) ---------- */
 .hub-body[data-tab="shop"], .hub-body[data-tab="boosters"] { gap: 10px; }
@@ -7679,37 +7718,37 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   FG.PACKS = Object.freeze({
     standard: Object.freeze({ id: 'standard', label: 'Booster Krosciculus', title: 'KROSCICULUS', price: FG.ECONOMY.boosterPrice, size: FG.ECONOMY.boosterSize, image: 'img/booster.jpg', pos: '50% 30%' }),
     boss: Object.freeze({
-      id: 'boss', label: 'Booster Boss', title: 'BOSS', price: 500, size: 5, image: 'img/booster-boss.jpg', pos: '50% 38%', type: 'boss',
+      id: 'boss', label: 'Booster Boss', title: 'BOSS', price: 300, size: 5, image: 'img/booster-boss.jpg', pos: '50% 38%', type: 'boss',
       rates: Object.freeze({ commune: 10, rare: 20, epique: 60, legendaire: 9.5, mythique: 0.5 }),
       note: 'Ne contient que des cartes Boss.',
     }),
     fortune: Object.freeze({
-      id: 'fortune', label: 'Booster des Fortunés', title: 'FORTUNÉS', price: 5000, size: 5, image: 'img/booster-fortune.jpg', pos: '50% 45%',
+      id: 'fortune', label: 'Booster des Fortunés', title: 'FORTUNÉS', price: 3000, size: 5, image: 'img/booster-fortune.jpg', pos: '50% 45%',
       rates: Object.freeze({ epique: 60, legendaire: 33, mythique: 7 }),
       note: 'Ne contient que des cartes Épique ou mieux.',
     }),
     fortune_monster: Object.freeze({
-      id: 'fortune_monster', hidden: true, label: 'Booster des Fortunés 100 % monstres', title: 'FORTUNÉS', price: 5000, size: 5, image: 'img/booster-fortune.jpg', pos: '50% 45%', type: 'monster',
+      id: 'fortune_monster', hidden: true, label: 'Booster des Fortunés 100 % monstres', title: 'FORTUNÉS', price: 3000, size: 5, image: 'img/booster-fortune.jpg', pos: '50% 45%', type: 'monster',
       rates: Object.freeze({ epique: 60, legendaire: 33, mythique: 7 }),
       note: 'Ne contient que des monstres Épique ou mieux. Récompense de succès.',
     }),
     fortune_spell: Object.freeze({
-      id: 'fortune_spell', hidden: true, label: 'Booster des Fortunés 100 % sorts', title: 'FORTUNÉS', price: 5000, size: 5, image: 'img/booster-fortune.jpg', pos: '50% 45%', type: 'spell',
+      id: 'fortune_spell', hidden: true, label: 'Booster des Fortunés 100 % sorts', title: 'FORTUNÉS', price: 3000, size: 5, image: 'img/booster-fortune.jpg', pos: '50% 45%', type: 'spell',
       rates: Object.freeze({ epique: 60, legendaire: 33, mythique: 7 }),
       note: 'Ne contient que des sorts Épique ou mieux. Récompense de succès.',
     }),
     fortune_equipment: Object.freeze({
-      id: 'fortune_equipment', hidden: true, label: 'Booster des Fortunés 100 % équipements', title: 'FORTUNÉS', price: 5000, size: 5, image: 'img/booster-fortune.jpg', pos: '50% 45%', type: 'equipment',
+      id: 'fortune_equipment', hidden: true, label: 'Booster des Fortunés 100 % équipements', title: 'FORTUNÉS', price: 3000, size: 5, image: 'img/booster-fortune.jpg', pos: '50% 45%', type: 'equipment',
       rates: Object.freeze({ epique: 60, legendaire: 33, mythique: 7 }),
       note: 'Ne contient que des équipements Épique ou mieux. Récompense de succès.',
     }),
     fortune_dofus: Object.freeze({
-      id: 'fortune_dofus', hidden: true, label: 'Booster des Fortunés 100 % Dofus', title: 'FORTUNÉS', price: 5000, size: 5, image: 'img/booster-fortune.jpg', pos: '50% 45%', type: 'dofus',
+      id: 'fortune_dofus', hidden: true, label: 'Booster des Fortunés 100 % Dofus', title: 'FORTUNÉS', price: 3000, size: 5, image: 'img/booster-fortune.jpg', pos: '50% 45%', type: 'dofus',
       rates: Object.freeze({ epique: 60, legendaire: 33, mythique: 7 }),
       note: 'Ne contient que des Dofus Épique ou mieux. Récompense de succès.',
     }),
     frigostien: Object.freeze({
-      id: 'frigostien', label: 'Booster Frigostien', title: 'FRIGOSTIEN', price: 300, size: 10, image: 'img/booster-frigostien.jpg', pos: '30% 22%',
+      id: 'frigostien', label: 'Booster Frigostien', title: 'FRIGOSTIEN', price: 150, size: 10, image: 'img/booster-frigostien.jpg', pos: '30% 22%',
       ids: Object.freeze(['royalmouth', 'mansot_royal', 'ben_ripate', 'obsidiantre', 'tengu_givrefoux', 'fujigivrefoux', 'kolosso', 'professeurxa', 'glourseleste', 'missizfrizz', 'sylargh', 'klime', 'nileza', 'korriandre', 'anneau_korriandre', 'cape_korriandre', 'hache_korriandre', 'casque_klime', 'capuche_sylargh', 'casque_missiz_frizz', 'cape_nileza', 'bague_gloursonne', 'alliance_gloursonne', 'cape_reski', 'amulette_glours', 'chapeau_comte_harebourg', 'epee_granduk', 'ceinture_strigide', 'amulette_strigide', 'cape_hiculteur', 'ceinture_glaciale', 'anneau_vicie', 'anneau_kolosso', 'ceinture_kolosso', 'coiffe_kolosso', 'baton_brageut', 'arc_gutentak', 'epee_gloursonne', 'masse_vigie_pirate', 'marteau_glouragan', 'ceinture_seculaire', 'comteharebourg', 'cape_cantile', 'amulette_cantile', 'bottes_cantile', 'anneau_cantile', 'crochet_ben_ripate', 'chapeau_ben_ripate', 'ceinture_ben_ripate', 'talisman_choh', 'amulette_ementaire_deluxe', 'objection_obsidiantre', 'politesse_obsidiantre', 'courtoisie_obsidiantre', 'salutation_obsidiantre', 'validation_obsidiantre', 'chapo_kalyptik', 'bague_prophetes', 'anneau_gutentak', 'pagne_soryo', 'ceinture_tengu', 'coiffe_tengu', 'bottes_tengu', 'anneau_tabene', 'amulette_kanimate', 'chapeau_pourih', 'slip_iholo', 'alliance_boreale', 'ceinture_boreale', 'bottes_boreale', 'coiffe_boreale', 'amulette_heroclite', 'chapeau_lisson', 'cape_professeur_xa', 'cape_fuji_givrefoux', 'boufmouth', 'chefboufmouth', 'boufmouthlegendaire', 'bouftonmouth', 'mansobese', 'shamansot', 'mamansot', 'timansot', 'fu_mansot', 'mansordide', 'kamigivrefoux', 'yokaigivrefoux', 'yomigivrefoux', 'soryogivrefoux', 'mahogivrefoux', 'gloursaya', 'brikoglours', 'meliglours', 'boulglours', 'aperiglours', 'glourmand', 'glouragan', 'harpirate', 'pitraille', 'fantomalamere', 'fantomat', 'vigiepirate', 'fantimonier', 'fancrome', 'crapeur', 'mofette', 'solfatare', 'fumrirolle', 'atomystique', 'fistulor', 'dramanite', 'abrazif', 'merulette', 'fongeur', 'blerom', 'fleuro', 'croleur', 'blereauve', 'blerice', 'kanimate', 'merulor', 'ecumouth', 'mecanofoux', 'peunch', 'grodruche', 'cuirboule', 'empaille', 'harrogant', 'stalak', 'ventrubilion', 'karkanik', 'verglasseur', 'frimar', 'droseral', 'nessil', 'dodox', 'krakal', 'thermystique', 'cycloide', 'granduk', 'strigide', 'nocturlabe', 'sinistrofu', 'ceinture_glourdorak', 'bottes_will_kinson', 'bottes_styx', 'bottes_inferno', 'bottes_royalmouth', 'cape_moutheuz', 'amulette_royalmouth', 'casque_ecumouth', 'anneau_mouth', 'bague_moutheuz', 'coiffe_royalmouth', 'cape_ricieuse', 'casque_fricochere', 'ceinture_royalmouth', 'anneau_frigostine', 'bottes_frigostine', 'ceinture_frigostine', 'amulette_frigostine', 'cape_mansot_royal', 'anneau_mansot_royal', 'couronne_mansot_royal', 'bottes_hoktone', 'sandales_gorithme', 'pagniglou', 'anneau_frage', 'styxano', 'willkinsano', 'infernano', 'mandrano', 'anneau_nobstant', 'slip_hie', 'ruskauffe', 'masque_fantomatique', 'casque_harpirate']),
       rates: Object.freeze(Object.fromEntries(Object.entries(FG.RARITY).map(([r, v]) => [r, v.weight]))), // mêmes taux de rareté que le booster Krosciculus (FG.RARITY)
       note: 'Ne contient que des boss, monstres et équipements de Frigost.',
@@ -8876,13 +8915,14 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     }
 
     /** Ajoute les cartes d'un booster à la collection et compte le booster. */
-    function addCards(ids) {
+    function addCards(ids, rateMult) {
+      const mult = rateMult || 1; // Booster des Fortunés : taux Archimonstres et rayonnants ×2
       const cards = ids.map((drawn) => {
         let id = drawn;
         const archiId = FG.archiIdOf(drawn);
-        if (archiId && owned(archiId) === 0 && Math.random() < FG.ARCHI_RATE) id = archiId; // Archimonstre : 3 % du taux de drop du monstre, une seule fois
+        if (archiId && owned(archiId) === 0 && Math.random() < FG.ARCHI_RATE * mult) id = archiId; // Archimonstre : 3 % du taux de drop du monstre, une seule fois
         const rayonId = FG.rayonIdOf(drawn);
-        if (rayonId && owned(rayonId) === 0 && Math.random() < FG.rayonRate(drawn)) id = rayonId; // Rayonnant : 2 % du taux de drop de l'équipement (1 % pour un Dofus), une seule fois
+        if (rayonId && owned(rayonId) === 0 && Math.random() < FG.rayonRate(drawn) * mult) id = rayonId; // Rayonnant : 2 % du taux de drop de l'équipement (1 % pour un Dofus), une seule fois
         const before = owned(id);
         profile.collection[id] = Math.min(CARDS[id].archi || CARDS[id].rayon ? 1 : MAX_COPIES_OWNED, before + 1);
         if (id !== drawn) profile.collection[drawn] = Math.min(MAX_COPIES_OWNED, owned(drawn) + 1); // l'Archimonstre ou le rayonnant s'ajoute à la carte tirée : on garde la carte de base pour pouvoir la jouer
@@ -9019,6 +9059,13 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
           const pool = cardIds().filter((id) => (!r.rarities || r.rarities.includes(CARDS[id].rarity)) && (r.type === undefined || CARDS[id].type === r.type) && (r.dofus === undefined || FG.isDofus(CARDS[id]) === r.dofus) && !CARDS[id].rate && (!FG.isShopLocked(CARDS[id]) || isUnlocked(id)));
           if (!pool.length) continue;
           const id = pick(pool);
+          addCopy(id);
+          lines.push('+1 ' + CARDS[id].name);
+        }
+        for (let i = 0; i < (spec.randomArchiAny || 0); i++) { // +1 Archimonstre purement aléatoire (déjà possédé ou non)
+          const all = FG.archiIds().filter((id) => hasOwn(CARDS, id));
+          const id = pick(all);
+          if (!id) break;
           addCopy(id);
           lines.push('+1 ' + CARDS[id].name);
         }
@@ -9193,7 +9240,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
         if (stockOf(id) < n) return { ok: false, reason: 'Pas assez de boosters : achetez-en en boutique.' };
         setStock(id, stockOf(id) - n);
         const cards = [];
-        for (let i = 0; i < n; i++) cards.push(...addCards(FG.Boosters.open(rng, null, id, isUnlocked)));
+        for (let i = 0; i < n; i++) cards.push(...addCards(FG.Boosters.open(rng, null, id, isUnlocked), String(id).indexOf('fortune') === 0 ? 2 : 1));
         commit();
         return { ok: true, cards };
       },
@@ -11304,6 +11351,11 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       }
       this.emit(events, { type: 'summon', key: tm(m), card: card.cardId, player: me.idx,
         text: me.name + ' · invocation : ' + def.name });
+      const ratFoe = card.cardId === 'rat_noir' ? 'rat_blanc' : card.cardId === 'rat_blanc' ? 'rat_noir' : null;
+      if (ratFoe && this.state.players.some((q) => q.idx % 2 !== me.idx % 2 && q.board.some((x) => x.cardId === ratFoe))) { // succès Bratkmar et Bontrat : Rat Noir face à Rat Blanc (ou l'inverse)
+        events.push({ type: 'achv', flag: 'bratkmar-bontrat', idx: me.idx });
+        events.push({ type: 'achv', flag: 'bratkmar-bontrat', idx: this.enemyOf(me).idx });
+      }
       this.makeTwin(me, m, events);
       this.summonFoulette(me, m, events); // Foulette (Kami Givrefoux) : la roulette se lance dès l'invocation
       if (passiveOf(m, 'cadran')) this.cadranStart(m, events); // Cadran (Comte Harebourg) : l'heure vaut 1 à l'invocation
@@ -15329,6 +15381,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       if (!m.token) this.toGrave(owner, { uid: m.uid, cardId: m.cardId, start: m.start }, events); // un double n'est pas une vraie carte
       for (const eq of m.equipment) this.toGrave(owner, eq, events);
       this.emit(events, { type: 'death', key: tm(m), text: CARDS[m.cardId].name + ' : vaincu' });
+      if (m.cardId === 'craqueleur' && !m.token) events.push({ type: 'achv', flag: 'faire-carriere', idx: this.enemyOf(owner).idx }); // succès Faire Carrière : Craqueleur Légendaire ennemi tué
       for (const p of this.state.players) { // Dofus Ébène : chaque mort inflige des dégâts au joueur adverse
         const foe = this.foePlayerOf(p);
         const dmg = this.dofusSum(p, 'deathPing'); // Ébène ignore les DO mais profite du % Dommages indirects
@@ -21203,6 +21256,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     collectionSearch: '',       // recherche par nom
     collectionShown: 0,  // cartes de la collection déjà chargées (chargement par lots)
     achFilter: 'all',      // onglet Succès : 'all' | 'claim' | 'progress' | 'done'
+    achCat: 'all',         // onglet Succès : 'all' (synthèse) ou identifiant de catégorie
     collectionCols: (() => { try { const n = Number(localStorage.getItem('krosciculus.collectionCols')); return n === 3 || n === 4 || n === 5 ? n : 3; } catch (e) { return 3; } })(), // taille des cartes de la collection : cartes par ligne (3 | 4 | 5)
     deckFilter: 'all',
     deckRarity: 'all',
@@ -22231,6 +22285,11 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     { id: 'pandawa10', name: 'L’alcool c’est cool', text: 'Faire 10 Victoires en Pandawa', goal: 10, value: (st) => st.winsPandawa },
     { id: 'feca10', name: 'Carglass répare~, Carglass remplace~ !', text: 'Faire 10 Victoires en Féca', goal: 10, value: (st) => st.winsFeca },
     { id: 'friendlyfire', name: 'Friendly Fire', text: 'Tuer un allié avec son propre Glouragan', goal: 1, value: () => (Save.hasFlag('friendlyfire') ? 1 : 0) },
+    { id: 'poches-or', name: 'Poches en Or', text: 'Obtenir 100 cartes Légendaires', goal: 100, value: () => countOwned((d) => d.rarity === 'legendaire') },
+    { id: 'mythes-termites', name: 'Mythes et Termites', text: 'Obtenir 50 cartes Mythiques', goal: 50, value: () => countOwned((d) => d.rarity === 'mythique') },
+    { id: 'faire-carriere', name: 'Faire Carrière', text: 'Tuer un Craqueleur Légendaire ennemi', goal: 1, value: () => (Save.hasFlag('faire-carriere') ? 1 : 0) },
+    { id: 'bratkmar-bontrat', name: 'Bratkmar et Bontrat', text: 'Jouer un Rat Noir contre un Rat Blanc ou l’inverse', goal: 1, value: () => (Save.hasFlag('bratkmar-bontrat') ? 1 : 0) },
+    { id: 'donjonologie', name: 'Donjonologie', text: 'Obtenir 30 Boss', goal: 30, value: () => countOwned((d) => d.type === 'boss') },
     { id: 'fratricide', name: 'Fratricide', text: 'Manger un Gloutovore allié avec un autre Gloutovore allié', goal: 1, value: () => (Save.hasFlag('fratricide') ? 1 : 0) },
   ];
 
@@ -22273,8 +22332,8 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     vulbis100: { packs: { fortune: 10 } },
     archi1: { packs: { standard: 2 } },
     archi10: { packs: { standard: 5 } },
-    archilegendaire: { packs: { fortune: 1 } },
-    archimythique: { packs: { fortune: 2 } },
+    archilegendaire: { randomArchiAny: 1 }, // +1 Archimonstre aléatoire
+    archimythique: { randomArchi: 1 }, // +1 Archimonstre non possédé
     archi30: { randomArchi: 1 },
     kralamour: { random: [{ rarities: ['mythique'] }] },
     exodia: { randomArchi: 1 },
@@ -22299,6 +22358,11 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     vulbisrayon: { randomUnowned: 1 }, // +1 carte non possédée, aléatoire
     friendlyfire: { copies: ['glouragan'] },
     fratricide: { packs: { fortune: 1 } },
+    'poches-or': { packs: { fortune: 1 } },
+    'mythes-termites': { packs: { fortune: 10 } },
+    'faire-carriere': { packs: { boss: 1 } },
+    'bratkmar-bontrat': { packs: { boss: 1 } },
+    donjonologie: { packs: { fortune: 1 } },
   };
   const ACH_REWARD_TEXT = {
     boost100: '+1 booster Krosciculus', boost1000: '+1 booster des Fortunés', cartes50: '+1 carte Rare aléatoire',
@@ -22317,6 +22381,8 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     iop10: '+1 booster Krosciculus', ecaflip10: '+1 booster Krosciculus', sacrieur10: '+1 booster Krosciculus', osamodas10: '+1 booster Krosciculus', steamer10: '+1 booster Krosciculus', xelor10: '+1 booster Krosciculus', sadida10: '+1 booster Krosciculus', ouginak10: '+1 booster Krosciculus', enutrof10: '+1 booster des Fortunés', roublard10: '+1 booster Krosciculus', zobal10: '+1 booster Krosciculus', cra10: '+1 booster Krosciculus', sram10: '+1 booster Krosciculus', eniripsa10: '+1 booster Krosciculus', pandawa10: '+1 booster Krosciculus', feca10: '+1 booster Krosciculus',
     dofusrayon1: '+1 Dofus Épique ou moins aléatoire', dofusrayon30: '+5 boosters des Fortunés', vulbisrayon: '+1 carte non possédée aléatoire',
     friendlyfire: '+1 Glouragan', fratricide: '+1 booster des Fortunés',
+    'poches-or': '+1 booster des Fortunés', 'mythes-termites': '+10 boosters des Fortunés', 'faire-carriere': '+1 booster de Boss',
+    'bratkmar-bontrat': '+1 booster de Boss', donjonologie: '+1 booster des Fortunés',
   };
   function rewardSpec(id) {
     const r = ACH_REWARDS[id];
@@ -22391,21 +22457,47 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     }, 6600);
   }
 
+  /** Catégories de succès (barre latérale). Un succès absent de ces listes tombe dans « Autres ». */
+  const ACH_CATS = [
+    { id: 'boosters', label: 'Boosters', emoji: '📦', ids: ['boost100', 'boost1000', 'triple', 'only-monster', 'only-spell', 'only-equipment', 'only-dofus', 'vulbis2', 'vulbis100'] },
+    { id: 'collection', label: 'Collection', emoji: '🗂️', ids: ['cartes50', 'cartes100', 'cartes200', 'cartes500', 'legendaire1', 'mythique1', 'legendaires30', 'mythiques10', 'poches-or', 'mythes-termites'] },
+    { id: 'dofus', label: 'Dofus', emoji: '🥚', ids: ['dofus-rare', 'primordiaux4', 'primordiaux6', 'dofus30', 'vulbis'] },
+    { id: 'archi', label: 'Archimonstres', emoji: '👹', ids: ['archi1', 'archi10', 'archi30', 'archi100', 'archilegendaire', 'archimythique'] },
+    { id: 'rayon', label: 'Rayonnants', emoji: '✨', ids: ['rayon1', 'rayon10', 'rayon30', 'rayon100', 'dofusrayon1', 'dofusrayon30', 'vulbisrayon'] },
+    { id: 'boss', label: 'Boss', emoji: '💀', ids: ['harebourg', 'lieutenants', 'kralamour', 'exodia', 'donjonologie'] },
+    { id: 'combats', label: 'Combats', emoji: '⚔️', ids: ['ia10', 'ia100', 'ia1000', 'pvp10', 'pvp100', 'pvp1000', 'friendlyfire', 'fratricide', 'faire-carriere', 'bratkmar-bontrat'] },
+    { id: 'classes', label: 'Classes', emoji: '🛡️', ids: ACHIEVEMENTS.filter((a) => /^[a-z]+10$/.test(a.id) && a.text.startsWith('Faire 10 Victoires en')).map((a) => a.id) },
+    { id: 'autres', label: 'Autres', emoji: '🏆', ids: [] },
+  ];
+  const ACH_CAT_OF = (() => {
+    const map = {};
+    ACH_CATS.forEach((c) => c.ids.forEach((id) => { map[id] = c.id; }));
+    return (id) => map[id] || 'autres';
+  })();
+
   function achievementsTab() {
     const rows = achievementRows();
     const claimedSet = new Set(Save.claimed());
     const nf = (n) => n.toLocaleString('fr-FR');
+    const claimable = (r) => r.done && !claimedSet.has(r.id);
+    const pctOf = (list) => (list.length ? Math.floor((list.filter((r) => r.done).length / list.length) * 100) : 0);
     const total = rows.length;
     const doneCount = rows.filter((r) => r.done).length;
-    const claimable = (r) => r.done && !claimedSet.has(r.id);
-    const toClaim = rows.filter(claimable).length;
+    const toClaimAll = rows.filter(claimable).length;
     const pct = total ? Math.round((doneCount / total) * 100) : 0;
-    const FILTERS = [['all', 'Tous', total], ['claim', 'À récupérer', toClaim], ['progress', 'En cours', total - doneCount], ['done', 'Obtenus', doneCount]];
-    const f = FILTERS.some((x) => x[0] === view.achFilter) ? view.achFilter : 'all';
+
+    /* Regroupement par catégorie (les catégories vides sont masquées). */
+    const cats = ACH_CATS.map((c) => {
+      const list = rows.filter((r) => ACH_CAT_OF(r.id) === c.id);
+      return Object.assign({}, c, { list, done: list.filter((r) => r.done).length, claim: list.filter(claimable).length, pct: pctOf(list) });
+    }).filter((c) => c.list.length > 0);
+    const catId = view.achCat === 'all' || cats.some((c) => c.id === view.achCat) ? view.achCat : 'all';
+    const cat = cats.find((c) => c.id === catId) || null;
+    const goCat = (id) => { view.achCat = id; render(); const m = document.querySelector('.ach-main'); if (m && m.scrollIntoView) m.scrollIntoView({ block: 'nearest' }); };
+
     /* Classement : récompenses à récupérer, puis succès entamés (les plus avancés d'abord), puis le reste, puis ceux déjà récupérés. */
     const rank = (r) => (claimable(r) ? 0 : !r.done && r.current > 0 ? 1 : !r.done ? 2 : 3);
-    const shown = rows.map((r, i) => ({ r, i }))
-      .filter(({ r }) => f === 'all' || (f === 'claim' ? claimable(r) : f === 'progress' ? !r.done : r.done))
+    const sortRows = (list) => list.map((r, i) => ({ r, i }))
       .sort((x, y) => rank(x.r) - rank(y.r) || (rank(x.r) === 1 ? y.r.current / y.r.goal - x.r.current / x.r.goal : 0) || x.i - y.i)
       .map(({ r }) => r);
 
@@ -22426,19 +22518,59 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
           reward && !got ? h('p', { class: 'ach2-rw' }, '🎁 ' + reward) : null));
     };
 
+    /* Barre latérale : Synthèse + une entrée par catégorie (progression en %). */
+    const navBtn = (id, emoji, label, p, claim) => h('button', { class: 'ach-cat' + (claim > 0 ? ' has-claim' : ''), type: 'button', 'aria-pressed': String(catId === id), onclick: () => goCat(id) },
+      h('span', { class: 'ach-cat-ic', 'aria-hidden': 'true' }, emoji),
+      h('span', { class: 'ach-cat-name' }, label),
+      claim > 0 ? h('span', { class: 'ach-cat-badge', title: plural(claim, 'récompense') + ' à récupérer' }, String(claim)) : null,
+      h('span', { class: 'ach-cat-pct' + (p >= 100 ? ' full' : '') }, p + ' %'));
+    const nav = h('nav', { class: 'ach-cats', 'aria-label': 'Catégories de succès' },
+      navBtn('all', '📜', 'Synthèse', pct, toClaimAll),
+      cats.map((c) => navBtn(c.id, c.emoji, c.label, c.pct, c.claim)));
+
+    let main;
+    if (!cat) { /* Synthèse : récompenses à récupérer, puis une carte par catégorie */
+      const pending = sortRows(rows.filter(claimable));
+      main = [
+        pending.length ? h('section', { class: 'ach-block' },
+          h('h3', { class: 'ach-h' }, '🎁 À récupérer', h('span', { class: 'n' }, String(pending.length))),
+          h('div', { class: 'ach-list2' }, pending.map(row))) : null,
+        h('section', { class: 'ach-block' },
+          h('h3', { class: 'ach-h' }, 'Catégories'),
+          h('div', { class: 'ach-sum' }, cats.map((c) => h('button', { class: 'ach-card' + (c.pct >= 100 ? ' full' : ''), type: 'button', onclick: () => goCat(c.id) },
+            h('span', { class: 'ach-card-ic', 'aria-hidden': 'true' }, c.emoji),
+            h('span', { class: 'ach-card-body' },
+              h('b', null, c.label),
+              h('span', { class: 'ach-card-meta' }, c.done + ' / ' + c.list.length + ' · ' + c.pct + ' %'),
+              h('span', { class: 'ach2-track' }, h('i', { style: { width: c.pct + '%' } }))),
+            c.claim > 0 ? h('span', { class: 'ach-cat-badge' }, String(c.claim)) : null)))),
+      ];
+    } else { /* Catégorie : filtres + liste */
+      const nClaim = cat.claim, nDone = cat.done, nAll = cat.list.length;
+      const FILTERS = [['all', 'Tous', nAll], ['claim', 'À récupérer', nClaim], ['progress', 'En cours', nAll - nDone], ['done', 'Obtenus', nDone]];
+      const f = FILTERS.some((x) => x[0] === view.achFilter) ? view.achFilter : 'all';
+      const shown = sortRows(cat.list.filter((r) => f === 'all' || (f === 'claim' ? claimable(r) : f === 'progress' ? !r.done : r.done)));
+      main = [
+        h('div', { class: 'ach-cathead' },
+          h('h3', { class: 'ach-h' }, cat.emoji + ' ' + cat.label),
+          h('span', { class: 'ach-cathead-pct' }, nDone + ' / ' + nAll + ' · ' + cat.pct + ' %'),
+          h('div', { class: 'ach2-track', role: 'progressbar', 'aria-label': 'Progression de la catégorie', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': cat.pct }, h('i', { style: { width: cat.pct + '%' } }))),
+        h('div', { class: 'col-row ach-filters', role: 'group', 'aria-label': 'Filtrer les succès' },
+          FILTERS.map(([id, label, n]) => h('button', { class: 'fchip t-' + id, type: 'button', 'aria-pressed': String(f === id), onclick: () => { view.achFilter = id; render(); } },
+            label, h('span', { class: 'n' }, String(n))))),
+        shown.length ? h('div', { class: 'ach-list2' }, shown.map(row)) : h('p', { class: 'col-empty' }, f === 'claim' ? 'Aucune récompense à récupérer dans cette catégorie.' : 'Aucun succès dans ce filtre.'),
+      ];
+    }
+
     return [
       h('section', { class: 'col-hero ach-hero' },
         h('div', { class: 'col-hero-top' },
-          h('div', null, h('h2', null, 'Succès'), h('span', { class: 'col-sub' }, toClaim > 0 ? plural(toClaim, 'récompense') + ' à récupérer' : 'Objectifs variés, souvent très difficiles')),
+          h('div', null, h('h2', null, 'Succès'), h('span', { class: 'col-sub' }, toClaimAll > 0 ? plural(toClaimAll, 'récompense') + ' à récupérer' : 'Objectifs variés, souvent très difficiles')),
           h('div', { class: 'col-score' }, h('b', null, String(doneCount)), h('span', null, ' / ' + total), h('small', null, 'succès obtenus'))),
         h('div', { class: 'col-meter' },
           h('div', { class: 'col-track', role: 'progressbar', 'aria-label': 'Progression des succès', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': pct }, h('i', { style: { width: pct + '%' } })),
           h('em', null, pct + ' %'))),
-      h('div', { class: 'col-dock' },
-        h('div', { class: 'col-row', role: 'group', 'aria-label': 'Filtrer les succès' },
-          FILTERS.map(([id, label, n]) => h('button', { class: 'fchip t-' + id, type: 'button', 'aria-pressed': String(f === id), onclick: () => { view.achFilter = id; render(); } },
-            label, h('span', { class: 'n' }, String(n)))))),
-      shown.length ? h('div', { class: 'ach-list2' }, shown.map(row)) : h('p', { class: 'col-empty' }, f === 'claim' ? 'Aucune récompense à récupérer pour l’instant.' : 'Aucun succès dans cette catégorie.'),
+      h('div', { class: 'ach-layout' }, nav, h('div', { class: 'ach-main' }, main)),
     ];
   }
 
