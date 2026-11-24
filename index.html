@@ -472,7 +472,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); z-index: 35; pointer-events: none;
   display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 14px;
   background: var(--surface-2); border: 2px solid var(--theirs); box-shadow: 0 8px 30px #000a;
-  animation: reveal 1.2s ease-out forwards;
+  animation: reveal 1.6s ease-out forwards;
 }
 #reveal img { width: 56px; height: 56px; object-fit: contain; }
 #reveal b { font-family: var(--font-display); font-weight: 400; font-size: 18px; }
@@ -499,11 +499,6 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
 
 @media (max-width: 380px) {
   .act-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .targetable, .hit, #reveal { animation: none; }
-  .pop { animation-duration: 1.4s; }
-  .hp-fill { transition: none; }
 }
 
 /* ---------- écran Personnaliser ---------- */
@@ -1554,6 +1549,138 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
 .shop-spell .shop-price.short { background: #ffffff1c; color: var(--muted); }
 .shop-spell .shop-stock { color: var(--at); font-weight: 700; }
 @media (orientation: landscape) and (min-width: 560px) { .pk-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ========== Combat : plus joli, plus lisible, retour en direct ========== */
+/* bandeau de tour */
+.screen.game .strip { position: relative; padding: 6px 8px 6px 12px; border-radius: 14px; background: linear-gradient(var(--surface-2), var(--surface)); border: 1px solid var(--line); box-shadow: 0 2px 10px #0006; }
+.screen.game .strip::before { content: ''; position: absolute; left: 0; top: 9px; bottom: 9px; width: 4px; border-radius: 0 4px 4px 0; background: var(--line); }
+.screen.game .strip.mine::before { background: var(--mine); box-shadow: 0 0 8px var(--mine); }
+.screen.game .strip.theirs::before { background: var(--theirs); box-shadow: 0 0 8px var(--theirs); }
+.strip-text strong { font-size: 17px; }
+.feed { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; cursor: pointer; min-width: 0; }
+.feed-line { margin: 0; padding: 1px 6px; border-left: 3px solid transparent; border-radius: 4px; font-size: 12.5px; line-height: 1.25; color: var(--muted); opacity: .5; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.feed-line:nth-last-child(2) { opacity: .72; }
+.feed-line.last { opacity: 1; color: var(--fg); background: #ffffff0d; font-weight: 700; }
+.feed-line.turn { color: var(--gold); border-left-color: var(--gold); font-weight: 800; }
+.feed-line.dmg, .feed-line.ko { border-left-color: var(--hp); }
+.feed-line.ko.last, .feed-line.dmg.last { color: #ffb4a8; }
+.feed-line.heal { border-left-color: #7fe3a1; }
+.feed-line.heal.last { color: #aef2c4; }
+.feed-line.shield { border-left-color: var(--shield); }
+.feed-line.shield.last { color: #bcd8ff; }
+.feed-line.poison { border-left-color: var(--poison); }
+.feed-line.poison.last { color: #d6c0f5; }
+.feed-line.empty { font-weight: 600; }
+.screen.game .strip .btn { min-height: 38px; }
+#btn-end { font-weight: 800; box-shadow: 0 2px 8px #0007; }
+@media (orientation: portrait), (max-width: 559px) {
+  .screen.game .strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .screen.game .strip .strip-text { flex: 1 0 100%; }
+  .screen.game .strip .btn { flex: 1 1 auto; }
+  .screen.game .strip #btn-end { flex: 2 1 42%; min-height: 44px; font-size: 15px; }
+}
+@media (orientation: landscape) and (max-height: 440px) { .feed-line:nth-last-child(3) { display: none; } }
+
+/* monstres */
+.mon { border-radius: 12px; background: radial-gradient(120% 90% at 50% 25%, #2d404a, var(--surface) 78%); box-shadow: 0 2px 6px #0008, inset 0 0 0 1px #ffffff0d; transition: transform .12s, box-shadow .12s; }
+.board.me .mon { box-shadow: 0 2px 6px #0008, 0 0 10px #5bb08f26, inset 0 0 0 1px #ffffff0d; }
+.board.opp .mon { box-shadow: 0 2px 6px #0008, 0 0 10px #cf6a5f26, inset 0 0 0 1px #ffffff0d; }
+.mon:active { transform: scale(.97); }
+.mon.selected { outline-color: var(--gold); box-shadow: 0 0 16px #e3ac3dbb; transform: translateY(-2px); }
+.slot { background: #ffffff06; }
+.mon-hp { height: 5px; margin: 2px 1px 1px; border-radius: 3px; background: #000a; overflow: hidden; flex: none; }
+.mon-hp i { display: block; height: 100%; background: linear-gradient(#8beca8, #3f9d5f); transition: width .35s ease; }
+.mon-hp.low i { background: linear-gradient(#ff8a78, #c4402f); }
+.mon-name { font-size: 10px; text-shadow: 0 1px 2px #000; }
+.mon-name.long { font-size: 9px; }
+.mon-stats { font-size: 11px; margin-top: 2px; }
+.stat { padding: 0 4px; border-radius: 7px; line-height: 15px; color: #fff; text-shadow: 0 1px 1px #0009; }
+.stat .k { opacity: .85; }
+.stat.at { color: #fff; background: linear-gradient(#dc8e37, #9a5a17); }
+.stat.life, .stat.life.bonus { color: #fff; }
+.stat.life { background: linear-gradient(#d15746, #8a2e25); }
+.stat.life.bonus { background: linear-gradient(#3f93cf, #245b8a); }
+.badge { background: #000c; box-shadow: 0 0 0 1px #ffffff14; }
+@media (orientation: landscape) and (min-height: 900px) {
+  .mon-name { font-size: 14px; } .mon-name.long { font-size: 12px; }
+  .mon-stats { font-size: 16px; margin-top: 4px; } .stat { line-height: 21px; }
+  .mon-hp { height: 7px; }
+}
+
+/* barres des joueurs */
+.side { background: linear-gradient(var(--surface-2), var(--surface)); box-shadow: 0 2px 8px #0006; }
+.side.active-turn { box-shadow: 0 0 0 2px var(--gold), 0 0 14px #e3ac3d55; }
+.hp { height: 18px; border-radius: 9px; box-shadow: inset 0 1px 3px #000b; }
+.hp-fill { background: linear-gradient(#f0806f, #b9402f); }
+.hp-text { font-size: 12px; line-height: 18px; }
+.pill { font-size: 11.5px; }
+.pill.pa { background: color-mix(in srgb, var(--pa) 20%, var(--surface-2)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pa) 50%, transparent); }
+.inspector { background: linear-gradient(var(--surface-2), var(--surface)); box-shadow: 0 2px 10px #0006; }
+
+/* nombres flottants : contour sombre pour rester lisibles sur n'importe quelle image */
+.pop { font-size: 26px; -webkit-text-stroke: 4px #000b; paint-order: stroke fill; text-shadow: none; }
+.pop.crit { font-size: 34px; }
+.pop.info { font-size: 18px; }
+#reveal .rv-text { margin-top: 3px; color: var(--fg); font-weight: 700; max-width: 62vw; }
+
+/* journal */
+.log-list { gap: 2px; font-size: 14px; }
+.log-list li { padding: 5px 8px; border-bottom: 0; border-left: 3px solid transparent; border-radius: 6px; }
+.log-list li:nth-child(odd) { background: #ffffff08; }
+.log-list li:last-child { background: #e3ac3d22; font-weight: 700; }
+.log-list li.turn { margin-top: 8px; color: var(--gold); font-weight: 800; border-left-color: var(--gold); background: #e3ac3d14; }
+.log-list li.dmg, .log-list li.ko { border-left-color: var(--hp); }
+.log-list li.heal { border-left-color: #7fe3a1; }
+.log-list li.shield { border-left-color: var(--shield); }
+.log-list li.poison { border-left-color: var(--poison); }
+
+/* animations (toujours actives, même si l'appareil demande moins de mouvement) */
+.pop { animation: popRise 1.3s ease-out forwards; }
+@keyframes popRise { 0% { opacity: 0; margin-top: 8px; scale: .6; } 12% { opacity: 1; scale: 1.18; } 25% { scale: 1; } 70% { opacity: 1; } 100% { opacity: 0; margin-top: -58px; } }
+.hit { animation: shake .3s linear, hitFlash .35s ease-out; }
+@keyframes hitFlash { 30% { filter: brightness(1.9) saturate(1.5); } }
+.feed-line.new { animation: feedIn .35s ease-out; }
+@keyframes feedIn { from { opacity: 0; transform: translateY(6px); } }
+.screen.game .strip.theirs::before { animation: thinking 1.2s ease-in-out infinite; }
+@keyframes thinking { 50% { opacity: .3; } }
+#btn-end.ready { animation: endPulse 1.4s ease-in-out infinite; }
+@keyframes endPulse { 50% { box-shadow: 0 0 0 4px #e3ac3d55, 0 0 16px #e3ac3d99; } }
+
+/* ---------- correctif : pastilles PV / AT des monstres du board contenues dans leur carte ----------
+ * Les pastilles gardaient leur taille de police fixe et débordaient des cases étroites. La carte devient un conteneur de requêtes :
+ * texte et marges se réduisent selon sa largeur, et les pastilles ne dépassent plus (min-width: 0, pas de retour à la ligne). */
+.mon { container: mon / inline-size; overflow: hidden; }
+.mon-stats { min-width: 0; max-width: 100%; box-sizing: border-box; flex-wrap: nowrap; }
+.mon-stats .stat { min-width: 0; flex: 0 1 auto; white-space: nowrap; box-sizing: border-box; overflow: hidden; }
+@container mon (max-width: 92px) {
+  .mon-stats { font-size: 9px; gap: 1px; }
+  .mon-stats .stat { padding: 0 3px; line-height: 13px; }
+  .mon-stats .stat .k { font-size: 6px; margin-right: 0; }
+}
+@container mon (max-width: 66px) {
+  .mon-stats { font-size: 8px; }
+  .mon-stats .stat { padding: 0 2px; line-height: 12px; }
+  .mon-stats .stat .k { display: none; } /* très petites cases : les couleurs (orange = AT, rouge/bleu = PV) suffisent */
+}
+
+/* ---------- correctif paysage : colonne des joueurs (tourelles du Steamer, etc.) entièrement visible ----------
+ * La colonne .gz était centrée sans « safe » : dès que son contenu dépassait la hauteur disponible, le haut et le bas étaient rognés
+ * sans pouvoir défiler. Les tourelles (largeur fixe) débordaient en largeur, et leur pastille d'évolution (décalée de -7 px) était coupée. */
+@media (orientation: landscape) and (min-width: 560px) {
+  .gz { justify-content: safe center; }
+  .gz > * { flex-shrink: 0; }
+  .turrets { box-sizing: border-box; max-width: 100%; flex-wrap: nowrap; align-items: flex-start; gap: 5px; padding: 3px 9px 9px 3px; }
+  .turret { flex: 0 1 40px; min-width: 0; width: auto; height: auto; aspect-ratio: 1; }
+  @media (max-height: 420px) {
+    .turrets { gap: 4px; padding: 2px 7px 7px 2px; }
+    .turret { flex-basis: 30px; }
+    .turret .evo { min-width: 18px; height: 18px; right: -5px; bottom: -5px; font-size: 10px; line-height: 14px; }
+  }
+}
+
+/* boutons d'action des monstres : groupés en tête de l'inspecteur, avant la description */
+.insp-actions.act-buttons { gap: 4px; }
+.insp-actions.act-buttons .btn { width: 100%; text-align: left; }
 </style>
 
 </head>
@@ -1608,7 +1735,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     <div class="strip">
       <div class="strip-text">
         <strong id="turn-label"></strong>
-        <span id="last-log" aria-live="polite"></span>
+        <div id="last-log" class="feed" aria-live="polite" title="Toucher pour ouvrir le journal complet"></div>
       </div>
       <button id="btn-evo" class="btn" type="button" hidden>Évolution</button>
       <button id="btn-kloun" class="btn" type="button" hidden>Klounerie</button>
@@ -19399,11 +19526,36 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       seals,
       m.equipment.length ? h('div', { class: 'pips', title: m.equipment.map((eq) => CARDS[eq.cardId].name).join(', ') }, m.equipment.map(() => icon('diamond'))) : null,
       badges.length ? h('div', { class: 'badges' }, badges) : null,
+      h('div', { class: 'mon-hp' + (m.hp * 100 < (m.maxHp || m.hp) * 35 ? ' low' : '') }, h('i', { style: { width: Math.max(0, Math.min(100, Math.round((m.hp * 100) / (m.maxHp || m.hp || 1)))) + '%' } })),
       h('div', { class: 'mon-name' + ((def.shortName || def.name).length > 9 ? ' long' : '') }, def.shortName || def.name),
       h('div', { class: 'mon-stats' },
         h('span', { class: 'stat at' }, h('span', { class: 'k' }, 'AT'), m.at),
         h('span', { class: 'stat life' + (m.tempHp > 0 ? ' bonus' : '') }, h('span', { class: 'k' }, 'PV'), m.hp + (m.tempHp > 0 ? '+' + m.tempHp : '')))
     );
+  }
+
+  /* ---------- fil d'actions en direct (plus besoin d'ouvrir le journal) ---------- */
+  function feedKind(t) {
+    if (/^Tour \d+/.test(t)) return 'turn';
+    if (/K\.O\.|meurt|détruit|tué/i.test(t)) return 'ko';
+    if (/poison/i.test(t)) return 'poison';
+    if (/bouclier|PB \d|PV temporaires/i.test(t)) return 'shield';
+    if (/[\u2212-]\s?\d+ PV|dégât|inflige|attaque/i.test(t)) return 'dmg';
+    if (/\+\s?\d+ PV|soign|rend/i.test(t)) return 'heal';
+    return '';
+  }
+  function renderFeed(s) {
+    const box = $('last-log');
+    const n = window.matchMedia('(orientation: landscape)').matches ? 3 : 4;
+    const lines = s.log.slice(-n);
+    if (!lines.length) { box.replaceChildren(h('p', { class: 'feed-line last empty' }, 'Choisissez une carte dans votre main.')); ui.feedSig = ''; return; }
+    const sig = s.log.length + '|' + s.log[s.log.length - 1];
+    const fresh = ui.feedSig !== sig;
+    ui.feedSig = sig;
+    box.replaceChildren(...lines.map((t, i) => {
+      const last = i === lines.length - 1;
+      return h('p', { class: 'feed-line ' + feedKind(t) + (last ? ' last' : '') + (last && fresh ? ' new' : '') }, t);
+    }));
   }
 
   function renderStrip() {
@@ -19413,9 +19565,13 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     else if (ui.busy || s.active !== HUMAN) label = ui.teams ? s.players[s.active].name + ' joue…' : 'L’adversaire joue…';
     else label = 'Tour ' + s.round + ' · à vous';
     $('turn-label').textContent = label;
-    $('last-log').textContent = s.log.length ? s.log[s.log.length - 1] : 'Choisissez une carte dans votre main.';
+    renderFeed(s);
     $('btn-end').disabled = !myTurn() || !!ui.targeting || !!ui.match.pendingAction(state().players[HUMAN]);
     $('btn-log').disabled = false;
+    { const stripEl = document.querySelector('.screen.game .strip'), meP = s.players[HUMAN];
+      const mine = s.winner === null && !ui.busy && s.active === HUMAN;
+      if (stripEl) { stripEl.classList.toggle('mine', mine); stripEl.classList.toggle('theirs', s.winner === null && !mine); }
+      $('btn-end').classList.toggle('ready', mine && !ui.targeting && !!meP && meP.pa <= 0); } // plus de PA : on met « Fin du tour » en avant
     const kloun = ui.match.klownability && s.winner === null && s.active === HUMAN && !ui.busy ? ui.match.klownability() : { ok: false };
     $('btn-kloun').hidden = !kloun.ok;
     const evo = ui.match.evolveOptions && s.winner === null && s.active === HUMAN && !ui.busy ? ui.match.evolveOptions() : { ok: false };
@@ -19493,13 +19649,15 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     const turn = myTurn();
     const info = turn ? ui.match.playability(card.uid) : { ok: false, reason: 'Ce n’est pas votre tour.' };
     const mult = ui.match.equipMultiplier(state().players[HUMAN]);
-    const out = FG.CardView.detailNodes(card.cardId, { fx: { luck: ui.match.luckOf(state().players[HUMAN]), heal: (a) => ui.match.previewHeal(state().players[HUMAN], null, a), healK: () => ui.match.healFactors(state().players[HUMAN], null, false) }, equipMult: mult, plus: ui.match.plusOneOf(state().players[HUMAN]), dmg: ui.match.damageBonusOf(state().players[HUMAN], null), dur: ui.match.durOf(state().players[HUMAN]),
+    const desc = FG.CardView.detailNodes(card.cardId, { fx: { luck: ui.match.luckOf(state().players[HUMAN]), heal: (a) => ui.match.previewHeal(state().players[HUMAN], null, a), healK: () => ui.match.healFactors(state().players[HUMAN], null, false) }, equipMult: mult, plus: ui.match.plusOneOf(state().players[HUMAN]), dmg: ui.match.damageBonusOf(state().players[HUMAN], null), dur: ui.match.durOf(state().players[HUMAN]),
       pv: (effects, mon, src) => { try { return effects && effects.length ? ui.match.previewDamage(state().players[HUMAN], null, effects, mon ? { monster: true, at: mon.at, hp: mon.hp, indirectPlayer: !!src && (src.target === 'player' || !!src.direct) } : { indirectPlayer: !!src && (src.target === 'player' || !!src.direct) }) : null; } catch (e) { return null; } } });
+    const out = []; // bouton d'action d'abord, puis la description de la carte
     if (def.type === 'legend' && !state().players[HUMAN].legendPlaced) { // Légende : à poser d'abord, sinon ni sorts ni passif
       const pErr = turn ? ui.match.validate({ type: 'placeLegend' }) : 'Ce n\u2019est pas votre tour.';
       out.push(h('div', null,
         h('button', { class: 'btn primary', type: 'button', disabled: !!pErr, onclick: () => perform({ type: 'placeLegend' }) }, 'Poser sur l\u2019emplacement Légende · Gratuit'),
         pErr ? h('span', { class: 'insp-note' }, ' ' + pErr) : null));
+      out.push(...desc);
       out.push(h('p', { class: 'insp-note' }, 'Posez la Légende pour profiter de ses sorts et de son passif.'));
       return out;
     }
@@ -19514,6 +19672,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
         h('button', { class: 'btn', type: 'button', disabled: !!dErr, onclick: () => perform({ type: 'discardEquip', handUid: card.uid }) }, 'Défausser · piocher 1 sort, monstre ou boss'),
         dErr ? h('span', { class: 'insp-note' }, ' ' + dErr) : null));
     }
+    out.push(...desc);
     return out;
   }
 
@@ -19706,16 +19865,17 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     const mine = isMine(ownerIdx);
     const out = [FG.CardView.head(def, 'AT ' + m.at + ' · PV ' + (m.cardId === 'cra_joueur' ? ui.match.state.players[ownerIdx].hp : m.hp) + (m.tempHp > 0 && m.cardId !== 'cra_joueur' ? ' (+' + m.tempHp + ' bonus)' : '') + '/' + (m.cardId === 'cra_joueur' ? ui.match.state.players[ownerIdx].maxHp : m.maxHp) + ' · CC ' + ui.match.critChanceOf(m, ui.match.state.players[ownerIdx]) + ' %' + (ui.match.pmOf(m, ui.match.state.players[ownerIdx]) > 0 ? ' · PM ' + Math.max(0, ui.match.pmOf(m, ui.match.state.players[ownerIdx]) - (m.pmUsed || 0)) + '/' + ui.match.pmOf(m, ui.match.state.players[ownerIdx]) : ''))];
     const turn = myTurn() && mine;
+    const actBtns = [];
     out.push(h('div', { class: 'insp-actions' }, FG.actionsOf(m).map((a, i) => {
       const info = turn ? ui.match.actionability(m.uid, i) : { ok: false, reason: '' };
       const d = FG.descBlock([...FG.effectNodes(a.text, a.effects, ui.match.plusOneOf(state().players[ownerIdx]), ui.match.damageBonusOf(state().players[ownerIdx], m), m.at, ui.match.durOf(state().players[ownerIdx]), (() => { try { return a.effects && a.effects.length ? ui.match.previewDamage(state().players[ownerIdx], m, a.effects, { indirectPlayer: a.target === 'player' || !!a.direct }) : null; } catch (e) { return null; } })(), { luck: ui.match.luckOf(state().players[ownerIdx]), heal: (a2) => ui.match.previewHeal(state().players[ownerIdx], m, a2), healK: () => ui.match.healFactors(state().players[ownerIdx], m, false) }), turn && !info.ok && info.reason ? ' (' + info.reason + ')' : '']);
+      if (mine) actBtns.push(h('button', { class: 'btn' + (info.ok ? ' primary' : ''), type: 'button', disabled: !info.ok, onclick: () => playMonsterAction(m, i) }, a.name)); // les boutons sont regroupés en tête de l'inspecteur, avant la description
       const row = h('div', { class: 'act-row' + (d.classList.contains('long') ? ' stack' : '') },
-        mine
-          ? h('button', { class: 'btn' + (info.ok ? ' primary' : ''), type: 'button', disabled: !info.ok, onclick: () => playMonsterAction(m, i) }, a.name)
-          : h('b', null, a.name),
+        h('b', null, a.name),
         d);
       return row;
     })));
+    if (actBtns.length) out.unshift(h('div', { class: 'insp-actions act-buttons' }, actBtns));
     const mv = turn ? ui.match.moveability(m.uid) : { ok: false, targets: [] };
     if (turn && (mv.free || mv.pmTotal > 0)) { // PM : on se déplace en touchant une case voisine en surbrillance (plus de bouton)
       const mh = moveHints();
@@ -20234,7 +20394,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     if (!rect) return;
     const el = h('div', { class: 'pop ' + cls, style: { left: rect.left + rect.width / 2 + 'px', top: rect.top + rect.height / 2 + 'px' } }, text);
     $('fx').append(el);
-    setTimeout(() => el.remove(), 1100);
+    setTimeout(() => el.remove(), 1400);
   }
 
   function playFx(events, before, reveal) {
@@ -20270,13 +20430,14 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     const el = $('reveal');
     el.replaceChildren(
       h('img', { src: def.image, alt: '' }),
-      h('div', null, h('b', null, def.name), h('span', null, 'L’adversaire joue : ' + FG.TYPE_LABEL[def.type].toLowerCase())));
+      h('div', null, h('b', null, def.name), h('span', null, 'L’adversaire joue : ' + FG.TYPE_LABEL[def.type].toLowerCase()),
+      e.text ? h('span', { class: 'rv-text' }, e.text) : null));
     el.hidden = false;
     el.style.animation = 'none';
     void el.offsetWidth; // relance l'animation
     el.style.animation = '';
     clearTimeout(showReveal.timer);
-    showReveal.timer = setTimeout(() => { el.hidden = true; }, 1200);
+    showReveal.timer = setTimeout(() => { el.hidden = true; }, 1600);
   }
 
   function toast(text) {
@@ -20289,7 +20450,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
 
   /* ---------- journal et fin de partie ---------- */
   function openLog() {
-    $('log-list').replaceChildren(...state().log.slice(-60).map((t) => h('li', null, t)));
+    $('log-list').replaceChildren(...state().log.slice(-60).map((t) => h('li', { class: feedKind(t) }, t)));
     $('logpanel').hidden = false;
     const list = $('log-list');
     list.scrollTop = list.scrollHeight;
@@ -20364,6 +20525,9 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       });
     });
     $('btn-log').addEventListener('click', openLog);
+    $('last-log').addEventListener('click', openLog); // toucher le fil d'actions ouvre le journal complet
+    $('logpanel').addEventListener('click', (ev) => { if (ev.target === $('logpanel')) $('logpanel').hidden = true; });
+    document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !$('logpanel').hidden) $('logpanel').hidden = true; });
     $('btn-log-close').addEventListener('click', () => { $('logpanel').hidden = true; });
     $('btn-quit').addEventListener('click', leave);
     $('btn-replay').addEventListener('click', leave);
