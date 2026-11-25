@@ -23519,7 +23519,8 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   }
   function releaseHeld() { if (!held) return; held = null; checkAchievements(); }
   const ownedIds = () => FG.catalogIds().filter((id) => ownedEff(id) > 0);
-  const countOwned = (test) => ownedIds().filter((id) => test(CARDS[id], id)).length;
+  const ownedAllCount = () => FG.catalogIds().concat(FG.archiIds(), FG.rayonIds()).filter((id) => ownedEff(id) > 0).length; // toute la collection (cartes + Archimonstres + Rayonnants), comme l'onglet Collection
+  const countOwned = (test) => FG.catalogIds().concat(FG.archiIds(), FG.rayonIds()).filter((id) => ownedEff(id) > 0).filter((id) => test(CARDS[id], id)).length;
   const PRIMORDIAL_ELEM = ['emeraude', 'pourpre', 'turquoise', 'ocre'];
   const PRIMORDIAL_ALL = PRIMORDIAL_ELEM.concat(['ebene', 'ivoire']);
   const ownedOf = (list) => list.filter((id) => ownedEff(id) > 0).length;
@@ -23530,10 +23531,10 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   const ACHIEVEMENTS = [
     { id: 'boost100', name: 'Fan de cartes', text: 'Ouvrir 100 Boosters', goal: 100, value: (st) => st.boosters },
     { id: 'boost1000', name: 'Fou des cartes', text: 'Ouvrir 1 000 Boosters', goal: 1000, value: (st) => st.boosters },
-    { id: 'cartes50', name: 'Petite vitrine', text: 'Posséder 50 cartes différentes', goal: 50, value: () => ownedIds().length },
-    { id: 'cartes100', name: 'Débutant Collectionneur', text: 'Posséder 100 cartes différentes', goal: 100, value: () => ownedIds().length },
-    { id: 'cartes200', name: 'Collection sympathique', text: 'Posséder 200 cartes différentes', goal: 200, value: () => ownedIds().length },
-    { id: 'cartes500', name: 'Collection Admirable', text: 'Posséder 500 cartes différentes', goal: 500, value: () => ownedIds().length },
+    { id: 'cartes50', name: 'Petite vitrine', text: 'Posséder 50 cartes différentes', goal: 50, value: () => ownedAllCount() },
+    { id: 'cartes100', name: 'Débutant Collectionneur', text: 'Posséder 100 cartes différentes', goal: 100, value: () => ownedAllCount() },
+    { id: 'cartes200', name: 'Collection sympathique', text: 'Posséder 200 cartes différentes', goal: 200, value: () => ownedAllCount() },
+    { id: 'cartes500', name: 'Collection Admirable', text: 'Posséder 500 cartes différentes', goal: 500, value: () => ownedAllCount() },
     { id: 'ia10', name: 'Chance du débutant', text: 'Gagner contre l’IA 10 fois', goal: 10, value: (st) => st.wins },
     { id: 'ia100', name: 'Tueur de robots', text: 'Gagner contre l’IA 100 fois', goal: 100, value: (st) => st.wins },
     { id: 'ia1000', name: 'Psychopathe', text: 'Gagner contre l’IA 1 000 fois', goal: 1000, value: (st) => st.wins },
@@ -23595,7 +23596,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     { id: 'faire-carriere', name: 'Faire Carrière', text: 'Tuer un Craqueleur Légendaire ennemi', goal: 1, value: () => (Save.hasFlag('faire-carriere') ? 1 : 0) },
     { id: 'bratkmar-bontrat', name: 'Bratkmar et Bontrat', text: 'Jouer un Rat Noir contre un Rat Blanc ou l’inverse', goal: 1, value: () => (Save.hasFlag('bratkmar-bontrat') ? 1 : 0) },
     { id: 'donjonologie', name: 'Donjonologie', text: 'Obtenir 30 Boss', goal: 30, value: () => countOwned((d) => d.type === 'boss') },
-    { id: 'ineffable', name: 'Collection Ineffable', text: 'Obtenir 1 000 cartes différentes', goal: 1000, value: () => ownedIds().length + archiOwned() + rayonOwned() },
+    { id: 'ineffable', name: 'Collection Ineffable', text: 'Obtenir 1 000 cartes différentes', goal: 1000, value: () => ownedAllCount() },
     { id: 'legend10', name: 'Il était une fois...', text: 'Obtenir 10 cartes Légende', goal: 10, value: () => countOwned((d) => d.type === 'legend') },
     { id: 'fratricide', name: 'Fratricide', text: 'Manger un Gloutovore allié avec un autre Gloutovore allié', goal: 1, value: () => (Save.hasFlag('fratricide') ? 1 : 0) },
   ];
