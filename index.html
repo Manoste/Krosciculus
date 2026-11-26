@@ -10893,7 +10893,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
         return;
       }
       const s = { round: 1, active: 0, winner: null, nextUid: 1, log: [], players: [], mode: classIds.length > 2 ? '2v2' : '1v1', lastActor: {} };
-      s.dedale = !!dedale; // combat du Dédale : main de départ 2, pioche 2, 6 PA de base, monstres du joueur non endormis
+      s.dedale = !!dedale; // combat du Dédale : main de départ 3, pioche 2, 6 PA de base, monstres du joueur non endormis
       this.state = s;
       classIds.forEach((classId, idx) => {
         if (!CLASSES[classId]) throw new Error('Classe inconnue : ' + classId);
@@ -10965,7 +10965,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
         const hp = this.dofusSum(p, 'playerHp') + this.dofusSetSum(p, 'hp') + (this.classOf(p).passive.playerHp || 0); // + Steamer : +50 PV; // Dofawa : +1 PV 
         p.maxHp += hp; p.hp += hp;
       });
-      s.players.forEach((p) => this.startDraw(p, s.dedale ? 2 : RULES.startHand, events));
+      s.players.forEach((p) => this.startDraw(p, s.dedale ? 3 : RULES.startHand, events));
       // Le joueur qui n'a pas l'initiative est compensé : 1 carte de plus, et ses monstres invoqués à son premier tour gagnent un bouclier.
       s.players.filter((p) => p.idx % 2 !== s.active % 2).forEach((p) => {
         this.startDraw(p, RULES.secondPlayerBonus.draw, events);
@@ -11098,8 +11098,29 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     /** %Retrait (stat d'équipement `retrait` + Dofus `retrait`) : + % de chance de retirer chaque PA. Le Kalyptus (luckOf) compte aussi. */
     retraitOf(p, srcM) { return p ? this.dofusSum(p, 'retrait') + (srcM && p.board.includes(srcM) ? this.equipStat(srcM, 'retrait', p) : 0) : 0; } // Dofus (Dofungus) : au Joueur ; équipement : seulement le monstre qui retire les PA
     /** %Esquive (stat d'équipement `esquive` + Dofus `esquive`) : − % de chance de se faire retirer chaque PA. Le Kalyptus (luckOf) compte aussi. */
-    /** Cube (Dédale) : PM / attaques par tour reçus par la case du board du monstre (un Cube par case choisie). */
-    cubeAt(owner, m, k) { const c = owner.cube, i = owner.board.indexOf(m); return c[k + 'At'] ? c[k + 'At'][i] || 0 : (i === c.pmSlot ? c[k] || 0 : 0); }
+    /**
+     * Cube (Dédale) : PM / attaques par tour donnés par une case du board (un Cube par case choisie).
+     * Le bonus est « figé » sur le monstre qui occupe la case au début de SON tour, ou qui y est posé pendant le tour,
+     * et ne dure que ce tour-là (m.cubeGrant, recalculé à chaque début de tour). Se déplacer ne le fait ni suivre ni disparaître.
+     */
+    cubeAt(owner, m, k) { return (m.cubeGrant && m.cubeGrant[k]) || 0; }
+    /** Donne (ou retire) le bonus de la case actuelle de `m` ; `slots` = this.slotsOf(owner). Renvoie les attaques ajoutées. */
+    cubeGrant(owner, m, slots) {
+      m.cubeGrant = null; m.cubeSeen = true;
+      const c = owner.cube, i = slots.indexOf(m); // vraie case du board (pas l'ordre du tableau : des cases peuvent être vides)
+      if (!c || m.boss || i < 0) return 0;
+      const pm = (c.pmAt || [])[i] || 0, act = (c.actAt || [])[i] || 0;
+      if (pm || act) m.cubeGrant = { pm, act };
+      return act;
+    }
+    /** Monstres arrivés sur le terrain pendant le tour (invocation, jeton, copie…) : ils reçoivent le bonus de leur case une seule fois. */
+    cubeSweep() {
+      for (const q of this.state.players) {
+        if (!q.cube || !q.board.some((m) => !m.cubeSeen && !m.boss)) continue;
+        const slots = this.slotsOf(q);
+        for (const m of q.board) if (!m.cubeSeen && !m.boss) m.extraLeft = (m.extraLeft || 0) + this.cubeGrant(q, m, slots);
+      }
+    }
     esquiveOf(p) { return p ? this.equipSum(p, 'esquive') + this.dofusSum(p, 'esquive') + (p.cube ? p.cube.esquive || 0 : 0) : 0; } // Cube (Dédale) : +% Esquive
     /** %Dommages indirects (stat d'équipement `indirect` + Dofus `indirect`, à tout le camp) : + % à tous les dégâts indirects infligés par le Joueur (poisons, ripostes et épines hors Bumper, Contrecoup, Soin douloureux). */
     indirectOf(p) { return p ? this.equipSum(p, 'indirect') + this.dofusSum(p, 'indirect') + ((this.legendPassiveOf(p, 'brakmar') || {}).indirect || 0) + (this.isTeams() ? 20 * this.state.players.filter((q) => q.idx % 2 === p.idx % 2 && q.idx !== p.idx && CLASSES[q.classId].passive.sramPing).length : 0) : 0; } // 2v2 : +20 % par Sram allié
@@ -12082,6 +12103,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       const events = [];
       this.state.actionSeq += 1; // identifie l'action en cours (Dofus Ivoire)
       const iceSnap = this.iceSnapshot(); // Reine des Glaces : positions avant l'action
+      const ronSnap = this.ronSnapshot(); // Breloque (Randonneur) : positions avant l'action
       switch (action.type) {
         case 'summon': this.doSummon(action, events); break;
         case 'spell': this.doSpell(action, events); break;
@@ -12101,6 +12123,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
         case 'end': this.endTurn(events); break;
       }
       this.iceCheck(iceSnap, events); // Reine des Glaces : tout déplacement, quel qu'il soit, brise la glace
+      this.ronCheck(ronSnap, events); // Breloque (Randonneur) : allié déplacé hors PM
       for (const q of this.syncOwners()) this.kingSync(q); // Roi (Roissingue)
       for (const q of this.syncOwners()) this.classAtSync(q); // Zobal / Sacrieur : +AT de classe
       for (const q of this.syncOwners()) this.cuirSync(q); // Élan (Cuirboule)
@@ -12112,6 +12135,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       this.legendSync(events); // Légende : Tueur de Kanigrou (Sim le Soft)
       this.cadranSync(events); // Cadran : plus de Comte, plus d'effets d'heure
       this.djaulSync(); // Djaul : AT recalculés après chaque action
+      this.cubeSweep(); // Cube (Dédale) : bonus de case pour les monstres posés pendant l'action
       return { ok: true, events };
     }
 
@@ -13359,6 +13383,47 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     }
 
     /** Reine des Glaces : ordre des monstres de chaque board et état « sur le board adverse » avant une action (null s'il n'y a pas de Missiz en jeu). */
+    /** Breloque (Randonneur Ballonné) : positions des alliés avant une action (seulement si une Breloque en bénéficie). */
+    ronSnapshot() {
+      const out = new Map();
+      for (const q of this.state.players) {
+        if (!q.charm || !q.charm.ronde) continue;
+        const slots = this.slotsOf(q), order = [], idx = new Map(), pm = new Map();
+        slots.forEach((x, i) => { if (x && !x.boss && !x.jump && q.board.includes(x)) { order.push(x.uid); idx.set(x.uid, i); pm.set(x.uid, x.pmUsed || 0); } });
+        out.set(q, { order, idx, pm });
+      }
+      return out.size ? out : null;
+    }
+
+    /**
+     * Breloque (Randonneur Ballonné) : un allié déplacé autrement que par ses propres PM (échange, poussée, téléportation, case libre sans PM…)
+     * inflige 2 dégâts (DO compris) à l'ennemi en face de sa case d'arrivée. Sans mort ni invocation, on compare les cases ; sinon l'ordre
+     * des survivants (un voisin qui meurt ou arrive ne compte pas comme un déplacement).
+     */
+    ronCheck(snap, events) {
+      if (!snap || this.ronBusy || this.state.winner !== null) return;
+      this.ronBusy = true;
+      try {
+        for (const [q, before] of snap) {
+          const slots = this.slotsOf(q), now = [];
+          slots.forEach((x, i) => { if (x && !x.boss && !x.jump && q.board.includes(x)) now.push([x, i]); });
+          const same = now.length === before.order.length && now.every(([x]) => before.idx.has(x.uid));
+          const common = before.order.filter((u) => now.some(([x]) => x.uid === u)), nowCommon = now.map(([x]) => x.uid).filter((u) => common.includes(u));
+          const foe = this.enemyOf(q);
+          for (const [x, i] of now) {
+            if (!before.idx.has(x.uid) || x.hp <= 0 || (x.pmUsed || 0) > before.pm.get(x.uid)) continue; // nouveau venu ou déplacement par PM : rien
+            const moved = same ? before.idx.get(x.uid) !== i : common.indexOf(x.uid) !== nowCommon.indexOf(x.uid);
+            if (!moved) continue;
+            const face = this.slotsOf(foe)[i];
+            if (!face || !(face.hp > 0) || !foe.board.includes(face)) continue;
+            this.emit(events, { type: 'info', key: tm(x), text: CARDS[x.cardId].name + ' · ' + (q.charm.rondeName || 'Randonneur') + ' : ' + CARDS[face.cardId].name + ' subit des dégâts' });
+            this.dealDamage({ kind: 'monster', m: face, owner: foe }, q.charm.ronde + this.damageBonusOf(q, x), {}, events);
+            if (this.state.winner !== null) return;
+          }
+        }
+      } finally { this.ronBusy = false; }
+    }
+
     iceSnapshot() {
       if (!this.state.players.some((q) => q.board.some((x) => x.hp > 0 && passiveOf(x, 'reineGlaces')))) return null;
       const order = (q) => this.slotsOf(q).filter((x) => x && !x.boss && !x.jump && q.board.includes(x)).map((x) => x.uid);
@@ -16555,6 +16620,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
         if (fecaCut > 0 && dmg > 0) this.emit(events, { type: 'info', key: tm(m), text: name + ' : Féca, −' + Math.min(fecaCut, dmg) + ' dégât' + (Math.min(fecaCut, dmg) > 1 ? 's' : '') + ' sur la ligne' });
         dmg = Math.max(0, dmg - (m.guard && (!m.guard.atkOnly || this.attackIn) ? m.guard.amount : 0) - this.equipStat(m, 'armor', owner) - fecaCut - cubeCut - (opts.crit && owner.cube ? owner.cube.ccut || 0 : 0) - (passiveOf(m, 'flatArmor')?.amount || 0) - (passiveOf(m, 'granuleux') && !m.attacked ? passiveOf(m, 'granuleux').amount : 0)); // Rempart / Coiffe en Mousse / Féca / Peau de silex
       }
+      if (dmg > 0 && owner.charm && owner.charm.clerc && owner.clercN > 0 && !m.intruder) dmg += owner.clercN * owner.charm.clerc; // Breloque (Clerc Obscur) : +1 dégât subi par tour écoulé (cumulable), par ligne
       if (!opts.pierce && m.shield > 0) {
         const absorbed = Math.min(m.shield, dmg);
         m.shield -= absorbed;
@@ -16786,7 +16852,19 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     }
     /** Pacifiste : le Koulosse (passif Kool) et un monstre transformé par Koolatitude ne peuvent infliger aucun dégât. */
     cannotHurt(m) { return !!(m && (m.poly || passiveOf(m, 'kool'))); }
+    /** Breloque (Martyr) : à la mort d'un allié, 10 % de ses PV max sont infligés à tous les ennemis. */
     kill(m, owner, events) {
+      const ch = owner.charm, was = owner.board.includes(m);
+      const dmg = ch && ch.martyr && was && !m.intruder ? Math.max(1, Math.ceil((m.maxHp * ch.martyr) / 100)) : 0;
+      this.killInner(m, owner, events);
+      if (!dmg || this.state.winner !== null) return;
+      const foe = this.enemyOf(owner);
+      const targets = foe.board.filter((x) => x.hp > 0);
+      if (!targets.length) return;
+      this.emit(events, { type: 'info', key: tm(m), text: CARDS[m.cardId].name + ' : ' + (ch.martyrName || 'Martyr') + ', ' + dmg + ' dégâts à tous les ennemis' });
+      for (const x of targets) if (this.state.winner === null && x.hp > 0 && foe.board.includes(x)) this.dealDamage({ kind: 'monster', m: x, owner: foe }, dmg, { noDf: true }, events);
+    }
+    killInner(m, owner, events) {
       this.unpoly(m, null);
       const k = owner.intruders.indexOf(m);
       if (k !== -1) { // intrus (Cawotte) : à sa mort, il soigne le Joueur qui l'a planté
@@ -17345,7 +17423,14 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       }
       p.bait = null; // Appât : ne dure que jusqu'au début du prochain tour de son lanceur
       const dokoko = this.dofusSum(p, 'regenAllies');
+      if (p.charm && p.charm.clerc) { // Breloque (Clerc Obscur) : chaque tour, +1 PV à chaque allié et +1 dégât subi de plus (infini)
+        p.clercN = (p.clercN || 0) + 1;
+        this.emit(events, { type: 'info', text: p.name + ' · ' + (p.charm.clercName || 'Clerc Obscur') + ' : alliés soignés de ' + p.charm.clerc + ' PV, dégâts subis +' + p.clercN * p.charm.clerc });
+        for (const x of p.board.slice()) if (x.hp > 0) this.heal(x, p.charm.clerc, events);
+      }
+      const cubeSlots = p.cube ? this.slotsOf(p) : null; // Cube (Dédale) : cases du board au début du tour
       for (const m of p.board) {
+        if (cubeSlots) this.cubeGrant(p, m, cubeSlots); // bonus de case pour ce tour (remplace celui du tour précédent)
         if (m.guard && --m.guard.turns <= 0) m.guard = null;
         if (m.immuneNeg && --m.immuneNeg.turns <= 0) m.immuneNeg = null; // Prohibition : protège jusqu'au début du prochain tour du propriétaire
         if (m.anc && --m.anc.turns <= 0) m.anc = null; // Ancroître : fin de la fenêtre
@@ -20094,7 +20179,12 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       p0.pa = dm.maxPa(p0); // les PA de départ tiennent compte du Cube et de la Breloque dès le premier tour
       if (p0.erodedLoss > 0) { p0.maxHp = Math.max(1, p0.maxHp - p0.erodedLoss); p0.hp = Math.min(p0.hp, p0.maxHp); }
       if (typeof er.hpPlayer === 'number' && er.hpPlayer < 1) p0.hp = Math.max(1, Math.min(p0.maxHp, Math.round(p0.maxHp * er.hpPlayer))); // le Joueur garde son % de PV d'un combat à l'autre
-      for (const id of opts.enemies) foe.board.push(dm.spawn(foe, id, dm.state.nextUid++, { cc: dm.baseCritOf(foe), acted: false, asleep: false }));
+      for (const id of opts.enemies) {
+        const mo = dm.spawn(foe, id, dm.state.nextUid++, { cc: dm.baseCritOf(foe), acted: false, asleep: false });
+        const fb = opts.foeBonus; // bonus naturel des monstres de la profondeur (ex. Profondeur 1 : +2 AT, +6 PV)
+        if (fb) { mo.at += fb.at || 0; mo.maxHp += fb.mhp || 0; mo.hp += fb.mhp || 0; }
+        foe.board.push(mo);
+      }
     }
     ui.onFinish = opts.onFinish || null;
     ui.finished = false;
@@ -24950,6 +25040,9 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     forcene1: { name: 'Forcené Novice', cc: -15, docrit: 3, text: '\u221215 % CC, +3 DoCrit', src: "data:image/webp;base64,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" },
     rixeur1: { name: 'Rixeur Novice', dfMon: 10, tp: true, text: 'Les monstres gagnent +10 % DF mais sont téléportés aléatoirement sur le terrain à chaque début de tour', src: "data:image/webp;base64,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" },
     ragemortelle1: { name: 'Rage Mortelle Novice', dfTurn: 10, dieTurn: 6, text: '+10 % DF par tour au Joueur ; au tour 6, il meurt', src: "data:image/webp;base64,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" },
+    martyr1: { name: 'Martyr Novice', martyr: 10, text: 'Quand un allié meurt, il inflige 10 % de ses PV max à tous les ennemis.', src: "data:image/webp;base64,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" },
+    clerc1: { name: 'Clerc Obscur Novice', clerc: 1, text: 'Chaque tour, soigne chaque allié de 1 PV, mais les dégâts subis augmentent de 1 (infini, cumulable).', src: "data:image/webp;base64,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" },
+    randonneur1: { name: 'Randonneur Ballonné', ronde: 2, text: 'Quand un allié est déplacé (hors PM), il inflige 2 dégâts aux ennemis alignés avec lui à son arrivée (profite des DO).', src: "data:image/webp;base64,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" },
   };
 
   /** Types de salles (la logique de jeu viendra s'y accrocher) : nom et courte description. */
@@ -25048,7 +25141,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     const rooms = new Map([[k(...start), start]]); // salles de la carte (hors Sortie et escalier)
     const edges = new Map(); // « a|b » -> [a, b]
     const addEdge = (a, b) => { const ka = k(...a), kb = k(...b); edges.set(ka < kb ? ka + '|' + kb : kb + '|' + ka, [a, b]); };
-    const target = 17 + rnd(5);
+    const target = 8 + rnd(4); // Entrée + 7 à 10 salles (Boss compris ; hors Sortie et escalier d'extraction)
     while (rooms.size < target) {
       const options = [];
       for (const [, [c, r]] of rooms) for (const [a, b] of around(c, r)) {
@@ -25068,8 +25161,8 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     const dist = new Map([[k(...start), 0]]), queue = [k(...start)];
     while (queue.length) { const id = queue.shift(); for (const n of adj.get(id)) if (!dist.has(n)) { dist.set(n, dist.get(id) + 1); queue.push(n); } }
     const free = (c, r) => !rooms.has(k(c, r)) && !(c === exit[0] && r === exit[1]);
-    // Boss : parmi les salles les plus éloignées qui ont une case libre voisine pour l'escalier
-    const bossCands = [...rooms.values()].filter(([c, r]) => dist.get(k(c, r)) >= 4 && around(c, r).some(([a, b]) => free(a, b)))
+    // Boss : un cul-de-sac parmi les salles les plus éloignées (aucune autre salle derrière lui), avec une case libre voisine pour l'escalier
+    const bossCands = [...rooms.values()].filter(([c, r]) => dist.get(k(c, r)) >= 4 && adj.get(k(c, r)).length === 1 && around(c, r).some(([a, b]) => free(a, b)))
       .sort((x, y) => dist.get(k(...y)) - dist.get(k(...x)));
     if (!bossCands.length) return null;
     const boss = bossCands[rnd(Math.max(1, Math.ceil(bossCands.length * 0.4)))];
@@ -25166,6 +25259,9 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       for (const k of ['pa', 'cc', 'docrit', 'dfMon', 'dfTurn']) if (d[k]) c[k] = (c[k] || 0) + d[k];
       if (d.pa) { c.turns = Math.max(c.turns || 0, d.turns || 1); c.paName = d.name; }
       if (d.tp) { c.tp = true; c.tpName = d.name; }
+      if (d.martyr) { c.martyr = (c.martyr || 0) + d.martyr; c.martyrName = d.name; } // Martyr : % des PV max infligés aux ennemis à la mort d'un allié
+      if (d.clerc) { c.clerc = (c.clerc || 0) + d.clerc; c.clercName = d.name; } // Clerc Obscur : +N dégâts subis par tour (cumulable), soin de 1 PV par tour
+      if (d.ronde) { c.ronde = (c.ronde || 0) + d.ronde; c.rondeName = d.name; } // Randonneur : dégâts à l'arrivée d'un allié déplacé hors PM
       if (d.dieTurn) { c.dieTurn = c.dieTurn ? Math.min(c.dieTurn, d.dieTurn) : d.dieTurn; c.dieName = d.name; }
     }
     return c;
@@ -25183,7 +25279,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   /** Lance le combat d'une salle : les monstres sont déjà sur le board adverse. La salle n'est franchie qu'en cas de victoire. */
   const DAEDALUX_ICON = "data:image/webp;base64,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"; // monnaie du Dédale
 
-  /** Butin d'une victoire, par monstre vaincu : 14~20 Daedalux (+50 % pour un Boss), 85 % d'un Cube Destruction Commun (dont 10 % de Rare à la place), 70 % d'une Breloque Novice. */
+  /** Butin d'une victoire, par monstre vaincu : 14~20 Daedalux (+50 % pour un Boss), 40 % d'un Cube Destruction Commun (dont 10 % de Rare à la place), 70 % d'une Breloque Novice. */
   function rollLoot(n, hasBoss) {
     const destr = Object.keys(CUBES).filter((k) => /^destruction\d$/.test(k)), charmIds = Object.keys(BRELOQUES);
     const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -25191,13 +25287,16 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     for (let i = 0; i < n; i++) {
       const d = 14 + Math.floor(Math.random() * 7); // 14 à 20
       dx += hasBoss && i === n - 1 ? Math.round(d * 1.5) : d; // le Boss est le dernier monstre de la liste
-      if (Math.random() < 0.85) { const base = pick(destr); cubes.push(Math.random() < 0.10 ? base + '_rare' : base); }
+      if (Math.random() < 0.40) { const base = pick(destr); cubes.push(Math.random() < 0.10 ? base + '_rare' : base); }
       if (Math.random() < 0.70) charms.push(pick(charmIds));
     }
     run.daedalux = (run.daedalux || 0) + dx;
     cubes.forEach((c) => giveItem('cube', c)); charms.forEach((c) => giveItem('charm', c));
     return { daedalux: dx, lines: ['+' + dx + ' Daedalux', ...cubes.map((c) => CUBES[c].name + ' (' + CUBES[c].rarity + ')'), ...charms.map((c) => 'Breloque ' + BRELOQUES[c].name)] };
   }
+
+  /** Bonus naturels des monstres (Boss compris) par Profondeur : +AT, +PV max. */
+  const FOE_BONUS = { 1: { at: 2, mhp: 6 } };
 
   function startFight(id, fight) {
     const S = FG.Save;
@@ -25209,6 +25308,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       classId: S.classId(), deck: S.deckIds(), enemies, erosion: run.erosion,
       cube: buildCube(),
       charm: buildCharm(),
+      foeBonus: FOE_BONUS[DEPTH.def.level] || null,
       exitTo: () => {
         challenge = null;
         if (run.defeated) { newRun(); FG.Nav.show('hub'); if (FG.Hub) FG.Hub.render(); return; } // défaite : l'exploration est terminée
@@ -25238,7 +25338,8 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     if (!canMove(id)) return;
     let fight = DEPTH.def.fights && DEPTH.def.fights[id];
     if (!fight && DEPTH.rooms.get(id).type === 'vide') { // salle vide : 80 % de combat (1 à 2 monstres), tirage fait une seule fois par salle
-      if (!run.rolls.has(id)) run.rolls.set(id, Math.random() < 0.8 ? 1 + Math.floor(Math.random() * 2) : 0);
+      const nearStart = DEPTH.adj.get(DEPTH.start).has(id); // salles adjacentes au départ : 1 monstre maximum
+      if (!run.rolls.has(id)) run.rolls.set(id, Math.random() < 0.8 ? 1 + (nearStart ? 0 : Math.floor(Math.random() * 2)) : 0);
       const n = run.rolls.get(id);
       if (n > 0) fight = { count: n, pool: FIGHT_POOL };
     }
