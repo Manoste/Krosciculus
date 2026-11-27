@@ -1542,6 +1542,22 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
 .shop-odds { padding: 8px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); }
 .shop-odds summary { min-height: 30px; display: flex; align-items: center; justify-content: center; font-weight: 800; }
 .shop-hint { margin: 0; text-align: center; }
+/* ---------- Black Friday : bandeau, pastilles -60 %, prix barrés ---------- */
+.col-hero.shop-hero.bf { background: radial-gradient(120% 150% at 100% 0%, #ffc83d99, transparent 55%), radial-gradient(90% 120% at 0% 100%, #ff3b3b44, transparent 60%), linear-gradient(135deg, #0b0b0d 0%, #1c1710 55%, #4a3608 100%); box-shadow: inset 0 0 0 1px #ffc83d66; }
+.bf-banner { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 12px; padding: 12px 14px; border-radius: 16px; border: 1px solid #ffc83d; background: repeating-linear-gradient(-45deg, #0d0d10 0 14px, #17130a 14px 28px); color: #fff; text-align: center; }
+.bf-banner::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 35%, #ffffff30 50%, transparent 65%); transform: translateX(-120%); animation: bf-shine 3.6s ease-in-out infinite; pointer-events: none; }
+@keyframes bf-shine { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.bf-tag { padding: 3px 10px; border-radius: 6px; background: #ffc83d; color: #151005; font-family: var(--font-display); font-size: 14px; letter-spacing: .08em; }
+.bf-pct { font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1; color: #ff4d4d; text-shadow: 0 2px 0 #00000080; }
+.bf-txt { font-weight: 800; font-size: 13px; color: #ffe9b0; }
+.bf-badge { position: absolute; z-index: 2; top: -4px; left: -2px; padding: 2px 7px; border-radius: 999px; background: #e5322d; color: #fff; font-family: var(--font-display); font-size: 13px; line-height: 1.2; box-shadow: 0 2px 6px #0008, 0 0 0 2px #ffc83d; transform: rotate(-8deg); pointer-events: none; }
+.bf-old { margin-right: 5px; font-weight: 700; opacity: .75; text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: #c4281f; }
+.pk.on-sale { box-shadow: inset 0 1px 0 #ffffff12, 0 0 0 1px #ffc83d55; }
+.shop-spell-tile { position: relative; }
+.nav-btn { position: relative; }
+.nav-sale { position: absolute; top: 2px; left: 50%; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: #e5322d; color: #fff; font-size: 9px; font-weight: 800; line-height: 1.5; pointer-events: none; animation: bf-pulse 1.6s ease-in-out infinite; }
+@keyframes bf-pulse { 50% { transform: scale(1.12); } }
+@media (prefers-reduced-motion: reduce) { .bf-banner::after, .nav-sale { animation: none; } }
 .empty-pk { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 22px 16px; border-radius: 16px; border: 1px dashed #ffffff40; text-align: center; color: var(--muted); font-weight: 700; }
 .fchip.class-chip::before { display: none; }
 .fchip.class-chip { padding-left: 6px; }
@@ -2008,6 +2024,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
             <li>Plusieurs ajustements.</li>
             <li>Équilibrage.</li>
             <li>Ajout des Profondeurs 2 et 3.</li>
+            <li>Les Boss gagnent des PV et de l’AT supplémentaires selon la Profondeur (en plus du bonus des monstres).</li>
             <li>Zone « Geôles Putrides ».</li>
             <li>Familles Asservis et Miséreux.</li>
           </ul>
@@ -8931,6 +8948,12 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   /** Nom d'un rang : « Fer », « Légende » (IA) ; avec pvp = true : « Fer IV », « Légende I » (multijoueur). */
   FG.rankName = (rank, pvp) => FG.LEAGUES[rank.league].name + (pvp ? ' ' + ROMAN[rank.division] : '');
 
+  /* ---------- Black Friday : réduction sur TOUS les articles de la boutique (boosters + sorts de classe).
+   * Pour terminer l'opération : mettre `active: false` (prix, bandeau, badges et prix barrés disparaissent d'un coup).
+   * `pct` = pourcentage de réduction. Le prix soldé est arrondi à l'entier (minimum 1). ---------- */
+  FG.SALE = Object.freeze({ active: true, pct: 60, name: 'Black Friday' });
+  FG.salePrice = (price) => (FG.SALE.active ? Math.max(1, Math.round(price * (100 - FG.SALE.pct) / 100)) : price);
+
   /* Boosters de la boutique. Le standard suit FG.RARITY ; les spéciaux ont leurs propres taux (% par carte, par rareté),
    * `type` limite le tirage à un type de carte (sinon toutes), `size` = cartes par booster. */
   FG.PACKS = Object.freeze({
@@ -10688,7 +10711,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       purchaseShopCard(id) {
         if (typeof id !== 'string' || !hasOwn(CARDS, id) || !FG.isShopLocked(CARDS[id])) return { ok: false, reason: 'Article inconnu.' };
         if (owned(id) > 0) return { ok: false, reason: 'Déjà acheté : les autres exemplaires se trouvent en booster.' };
-        const price = CARDS[id].shopPrice;
+        const price = FG.salePrice(CARDS[id].shopPrice); // Black Friday : prix soldé
         if (profile.kamas < price) return { ok: false, reason: 'Pas assez de Kamas.' };
         profile.kamas -= price;
         profile.collection[id] = 1;
@@ -10703,9 +10726,10 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
         const pack = FG.PACKS[isSpecialPack(packId) ? packId : 'standard'];
         if (!Number.isInteger(n) || n < 1 || n > ECONOMY.maxBoostersAtOnce) return { ok: false, reason: 'Quantité de boosters invalide.' };
         const cur = pack.currency === 'daedalux' ? 'daedalux' : 'kamas'; // le Booster du Dédale s'achète en Daedalux
-        if ((profile[cur] || 0) < pack.price * n) return { ok: false, reason: cur === 'daedalux' ? 'Pas assez de Daedalux.' : 'Pas assez de Kamas.' };
+        const unitPrice = FG.salePrice(pack.price); // Black Friday : prix soldé
+        if ((profile[cur] || 0) < unitPrice * n) return { ok: false, reason: cur === 'daedalux' ? 'Pas assez de Daedalux.' : 'Pas assez de Kamas.' };
         if (stockOf(pack.id) + n > MAX_STOCK) return { ok: false, reason: 'Réserve de boosters pleine.' };
-        profile[cur] -= pack.price * n;
+        profile[cur] -= unitPrice * n;
         setStock(pack.id, stockOf(pack.id) + n);
         commit();
         return { ok: true };
@@ -20823,6 +20847,8 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
         const fbt = opts.foeBonus; // bonus naturels des monstres de la profondeur, selon leur coût en PA (ex. Profondeur 1 : 1 PA = +4 AT, +20 PV)
         const fb = fbt ? (fbt[Math.min(5, Math.max(1, Math.round(CARDS[id].cost) || 1))] || null) : null;
         if (fb) { mo.at += fb.at || 0; mo.maxHp += fb.mhp || 0; mo.hp += fb.mhp || 0; }
+        const bb = opts.bossStats && opts.bossStats[id]; // bonus propre au Boss de la Profondeur : s'ajoute au bonus par Profondeur ci-dessus
+        if (bb) { mo.at += bb.at || 0; mo.maxHp += bb.mhp || 0; mo.hp += bb.mhp || 0; }
         const fd = opts.foeDepth; // bonus défensifs de la Profondeur : % Résistance, −N dégâts par ligne, −N dégâts par ligne en critique
         if (fd) { mo.resPerm = (mo.resPerm || 0) + (fd.res || 0); mo.foeLine = fd.line || 0; mo.foeCcut = fd.ccut || 0; }
         foe.board.push(mo);
@@ -22390,7 +22416,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       ul([
         'Contre l’IA, les Kamas gagnés dépendent de votre league (voir « Leagues »). Vous commencez avec ' + E.startKamas + ' Kamas.',
         'Un booster coûte ' + E.boosterPrice + ' Kamas et contient ' + E.boosterSize + ' cartes, dont au moins une Rare ou mieux.',
-      ]),
+      ].concat(FG.SALE.active ? [FG.SALE.name + ' : −' + FG.SALE.pct + ' % sur tous les articles de la boutique (prix barrés), offre temporaire.'] : [])),
       sub('Leagues (matchs contre l’IA)'),
       ul([
         'Contre l’IA, chaque league n’a qu’une division : atteindre ' + FG.LEAGUE_RULES.ai.kpToAdvance + ' KP (KrosPoints) fait passer à la league suivante. Le surplus de KP est conservé.',
@@ -24506,6 +24532,9 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   const OPEN_IDS = () => ALL_PACK_IDS.filter((id) => !PACKS[id].hidden || Save.boosters(id) > 0); // onglet Boosters : les boosters de récompense n'apparaissent que s'il en reste
   const totalStock = () => ALL_PACK_IDS.reduce((t, id) => t + Save.boosters(id), 0);
   const kamasFmt = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
+  /* Black Friday : pastille « -60 % » et ancien prix barré (rien si la promo est terminée) */
+  const saleBadge = () => FG.SALE.active ? h('span', { class: 'bf-badge', role: 'img', 'aria-label': FG.SALE.name + ' : moins ' + FG.SALE.pct + ' pour cent' }, '-' + FG.SALE.pct + '%') : null;
+  const oldPrice = (n) => FG.SALE.active ? h('s', { class: 'bf-old', 'aria-label': 'ancien prix ' + kamasFmt(n) }, kamasFmt(n)) : null;
   const ratesLine = (p) => 'Probabilités par carte : ' + Object.entries(p.rates).map(([r, w]) => RARITY[r].label + ' ' + String(w).replace('.', ',') + ' %').join(', ') + '.';
 
   function packVisual(id) {
@@ -24521,28 +24550,28 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
 
   /** Paquet en vente : carte colorée (paquet, nom, prix, achat à l'unité ou par lot). */
   function shopItem(id, kamas) {
-    const p = PACKS[id], stock = Save.boosters(id), dx = p.currency === 'daedalux', funds = dx ? Save.daedalux() : kamas, unit = dx ? 'Daedalux' : 'Kamas', poor = funds < p.price;
-    return h('div', { class: 'pk pk-' + p.id },
-      h('div', { class: 'pk-art' }, packVisual(id)),
+    const p = PACKS[id], stock = Save.boosters(id), dx = p.currency === 'daedalux', funds = dx ? Save.daedalux() : kamas, unit = dx ? 'Daedalux' : 'Kamas', price = FG.salePrice(p.price), poor = funds < price;
+    return h('div', { class: 'pk pk-' + p.id + (FG.SALE.active ? ' on-sale' : '') },
+      h('div', { class: 'pk-art' }, packVisual(id), saleBadge()),
       h('div', { class: 'pk-info' },
-        h('div', { class: 'pk-top' }, h('h3', { class: 'pk-name' }, p.label), h('span', { class: 'pk-price' + (poor ? ' short' : '') }, kamasFmt(p.price) + ' ' + unit)),
+        h('div', { class: 'pk-top' }, h('h3', { class: 'pk-name' }, p.label), h('span', { class: 'pk-price' + (poor ? ' short' : '') }, oldPrice(p.price), kamasFmt(price) + ' ' + unit)),
         h('p', { class: 'pk-meta' }, plural(p.size, 'carte') + ' · ' + (PACK_HINT[id] || ''), stock > 0 ? h('span', { class: 'pk-stock' }, ' · ' + stock + ' en réserve') : null),
         h('div', { class: 'pk-btns' },
           h('button', { class: 'btn primary', type: 'button', disabled: poor, onclick: () => purchase(1, id) }, 'Acheter 1'),
-          h('button', { class: 'btn', type: 'button', 'aria-label': 'Acheter ' + MULTI + ' pour ' + kamasFmt(p.price * MULTI) + ' ' + unit, disabled: funds < p.price * MULTI, onclick: () => purchase(MULTI, id) },
-            '×' + MULTI + ' · ' + kamasFmt(p.price * MULTI)))));
+          h('button', { class: 'btn', type: 'button', 'aria-label': 'Acheter ' + MULTI + ' pour ' + kamasFmt(price * MULTI) + ' ' + unit, disabled: funds < price * MULTI, onclick: () => purchase(MULTI, id) },
+            '×' + MULTI + ' · ' + kamasFmt(price * MULTI)))));
   }
 
   /** Étal d'un sort de classe : l'exemplaire unique vendu en boutique (les suivants sortent ensuite en booster). */
   function classSpellItem(id, kamas) {
-    const def = CARDS[id], own = Save.owned(id) > 0, poor = !own && kamas < def.shopPrice;
+    const def = CARDS[id], own = Save.owned(id) > 0, price = FG.salePrice(def.shopPrice), poor = !own && kamas < price;
     return h('div', { class: 'shop-item shop-spell r-' + def.rarity + (own ? ' owned' : '') },
-      h('div', { class: 'shop-spell-tile' }, plainTile(id, { fullArt: true, onclick: () => openSheet(id) })),
+      h('div', { class: 'shop-spell-tile' }, plainTile(id, { fullArt: true, onclick: () => openSheet(id) }), own ? null : saleBadge()),
       h('div', { class: 'shop-spell-info' },
         h('h3', { class: 'shop-spell-name' }, def.name),
         h('p', { class: 'shop-meta' }, RARITY[def.rarity].label.toLowerCase().replace(/^commune$/, 'commun') + ' · ' + FG.costText(def) + ' PA'),
-        own ? h('span', { class: 'shop-stock', style: { color: 'var(--mine)' } }, '✓ Acheté') : h('span', { class: 'shop-price' + (poor ? ' short' : '') }, kamasFmt(def.shopPrice) + ' Kamas'),
-        poor ? h('span', { class: 'shop-stock' }, 'Il manque ' + kamasFmt(def.shopPrice - kamas)) : null,
+        own ? h('span', { class: 'shop-stock', style: { color: 'var(--mine)' } }, '✓ Acheté') : h('span', { class: 'shop-price' + (poor ? ' short' : '') }, oldPrice(def.shopPrice), kamasFmt(price) + ' Kamas'),
+        poor ? h('span', { class: 'shop-stock' }, 'Il manque ' + kamasFmt(price - kamas)) : null,
         h('button', { class: 'btn primary', type: 'button', disabled: own || poor, onclick: () => buyClassSpell(id) }, own ? 'Possédé' : 'Acheter')));
   }
   /** Sorts de classe de la boutique : filtres par classe et par rareté, puis un bloc par classe (sorts triés par rareté croissante). */
@@ -24624,11 +24653,15 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     const stock = totalStock();
     const spells = view.shopSection === 'spells';
     return [
-      h('section', { class: 'col-hero shop-hero' },
+      h('section', { class: 'col-hero shop-hero' + (FG.SALE.active ? ' bf' : '') },
         h('div', { class: 'col-hero-top' },
           h('div', null, h('h2', null, 'Boutique'), h('span', { class: 'col-sub', 'aria-label': 'Boosters en réserve : ' + stock }, plural(stock, 'booster') + ' en réserve')),
           h('div', { class: 'col-score' }, h('b', null, kamasFmt(kamas)), h('span', null, ' Kamas'), h('small', null, 'dans votre bourse')),
           h('div', { class: 'col-score' }, h('b', null, kamasFmt(Save.daedalux())), h('span', null, ' Daedalux'), h('small', null, 'rapportés du Dédale')))),
+      FG.SALE.active ? h('section', { class: 'bf-banner', role: 'note' },
+        h('span', { class: 'bf-tag' }, 'BLACK FRIDAY'),
+        h('b', { class: 'bf-pct' }, '-' + FG.SALE.pct + ' %'),
+        h('span', { class: 'bf-txt' }, 'sur tous les articles de la boutique')) : null,
       h('div', { class: 'col-dock' },
         h('div', { class: 'col-row', role: 'group', 'aria-label': 'Rayon' },
           h('button', { class: 'fchip t-claim', type: 'button', 'aria-pressed': String(!spells), onclick: () => { view.shopSection = 'boosters'; render(); } }, 'Boosters'),
@@ -25387,7 +25420,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
 
   function init() {
     $('hub-nav').replaceChildren(...TABS.map((t) =>
-      h('button', { class: 'nav-btn', type: 'button', 'data-tab': t.id, onclick: () => go(t.id) }, t.emoji ? h('span', { class: 'nav-ic nav-emoji', 'aria-hidden': 'true' }, t.emoji) : FG.navIcon(t.id), h('span', null, t.label))));
+      h('button', { class: 'nav-btn', type: 'button', 'data-tab': t.id, onclick: () => go(t.id) }, t.emoji ? h('span', { class: 'nav-ic nav-emoji', 'aria-hidden': 'true' }, t.emoji) : FG.navIcon(t.id), h('span', null, t.label), t.id === 'shop' && FG.SALE.active ? h('b', { class: 'nav-sale', 'aria-hidden': 'true' }, '-' + FG.SALE.pct + '%') : null)));
     /* Écran titre : deux images. Portrait : 841 × 1870 (remplit l'écran des téléphones, rognée si besoin, sinon entière sur fond flou).
        Paysage (mobile couché, tablette, ordinateur) : 1672 × 941, remplit l'écran quand les proportions sont proches (16:10 à 2:1), sinon entière centrée sur un fond flou. */
     const PORT_SRC = $('title-img').src, LAND_SRC = $('title-img-land').src;
@@ -26014,7 +26047,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       if (Array.isArray(sh.brews)) shops.set(id, { brews: sh.brews.slice(0, 12).filter((b) => isObj(b) && data('brew', b.id)).map((b) => ({ id: b.id, left: toInt(b.left, 0, 5) })) });
       else shops.set(id, {
         larves: toInt(sh.larves, 0, LARVE_STOCK), bonbons: toInt(sh.bonbons, 0, BONBON_STOCK),
-        cubes: (Array.isArray(sh.cubes) ? sh.cubes.slice(0, 12) : []).filter((c) => data('cube', c)),
+        ...(() => { const ids = [], prices = []; (Array.isArray(sh.cubes) ? sh.cubes.slice(0, 12) : []).forEach((c, i) => { if (data('cube', c)) { ids.push(c); prices.push(toInt(Array.isArray(sh.cubePrices) ? sh.cubePrices[i] : 0, 0, 1000)); } }); return { cubes: ids, cubePrices: prices }; })(),
         spells: (Array.isArray(sh.spells) ? sh.spells.slice(0, 12) : []).filter((x) => isObj(x) && isSpell(x.id)).map((x) => ({ id: x.id, price: toInt(x.price, 0, 1000), sold: !!x.sold })),
       });
     }
@@ -26175,6 +26208,12 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   const FOE_BONUS_3 = { 1: { at: 10, mhp: 50 }, 2: { at: 12, mhp: 60 }, 3: { at: 8, mhp: 45 }, 4: { at: 7, mhp: 40 }, 5: { at: 5, mhp: 30 } }; // Profondeur 3
   const FOE_DEPTH = { 1: { res: 6, line: 1, ccut: 1 }, 2: { res: 10, line: 2, ccut: 1 }, 3: { res: 14, line: 3, ccut: 2 } }; // Bonus défensifs des monstres par Profondeur : % Résistance, −N dégâts subis par ligne, −N dégâts subis par ligne en critique (en plus)
   const FOE_BONUS = { 1: FOE_BONUS_1, 2: FOE_BONUS_2, 3: FOE_BONUS_3 }; // inhérents à chaque Profondeur : ils ne se cumulent pas d'une Profondeur à l'autre
+  /** Bonus propres aux Boss de chaque Profondeur : +PV max, +AT. Ils s'ajoutent au bonus par Profondeur des monstres (FOE_BONUS, selon leur coût en PA), jamais à sa place. */
+  const FOE_BOSS_BONUS = {
+    1: { phossile: { mhp: 45, at: 2 }, craqdoa: { mhp: 40, at: 3 } },
+    2: { misere: { mhp: 170, at: 4 }, servitude: { mhp: 135, at: 4 } },
+    3: { misere: { mhp: 210, at: 6 }, servitude: { mhp: 175, at: 6 } },
+  };
 
   function startFight(id, fight) {
     const S = FG.Save;
@@ -26188,6 +26227,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
       cube: buildCube(),
       charm: buildCharm(),
       foeBonus: FOE_BONUS[DEPTH.def.level] || null,
+      bossStats: FOE_BOSS_BONUS[DEPTH.def.level] || null, // bonus supplémentaires du Boss de la Profondeur
       foeDepth: FOE_DEPTH[DEPTH.def.level] || null,
       exitTo: () => {
         challenge = null;
@@ -26258,7 +26298,9 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
 
   /* Marchand : 3 Croque-larves à 5 Daedalux et 4 Cubes aléatoires (60 % Commun, 30 % Rare, 10 % Épique), tirés une fois par exploration. Les Daedalux dépensés sont ceux de l'exploration en cours. */
   const LARVE_PRICE = 5, LARVE_STOCK = 3, SHOP_CUBES = 4;
-  const CUBE_PRICE = { 'Commun': 15, 'Rare': 30, 'Épique': 60 }; // prix en Daedalux (à ajuster)
+  const CUBE_PRICE = { 'Commun': [16, 24], 'Rare': [36, 50], 'Épique': [65, 80], 'Mythique': [135, 160], 'Exalté': [175, 210] }; // fourchette de prix en Daedalux ; le prix de chaque Cube est tiré une fois à la création du stock
+  const rollCubePrice = (rarity) => { const [lo, hi] = CUBE_PRICE[rarity] || CUBE_PRICE['Commun']; return lo + Math.floor(Math.random() * (hi - lo + 1)); };
+  const cubePriceAt = (st, i) => { const id = st.cubes[i]; return id ? ((st.cubePrices && st.cubePrices[i]) || (CUBE_PRICE[CUBES[id].rarity] || CUBE_PRICE['Commun'])[0]) : 0; };
   const CROQUELARVE = { name: 'Croque-larve', text: 'Rend 1 PV érodé à chaque monstre et 5 PV érodés au Joueur.', src: "data:image/webp;base64,UklGRl4GAABXRUJQVlA4WAoAAAAQAAAARwAARwAAQUxQSPYCAAABoEVtmyFJ+v74/5lZ27Zt27Zt27Zt27Zt27bt6oj4v4tqZESuLiNiAvC/d5C/CcXfpGHeTSS0TwxrfjTT34AE7NCZAwFtD8DxXBCGtiuGXMblYWi7YeyHuS4MLZYuw4xvclsMQvUiAIIgWICaGZb8jvvA0EZVAQR9bv4Xj4ahhSONBWDqMTDFJrc+e95JOx9FnguVqlQBBEzx+V6LDHvm1w912Oe1CILKg9lgrE3yg09JppRj7KTHTQKqtvUXAoBBH3rHSc/O7shjYKhZMFrklfsdss5yTjI7+4zcR+oJ0jXMJ06Sf3b1N3IP1AMoFIczpRgTB5q4YR2iEnTCYaA2aYdOkj4AZ54RoYbuwZ+/vT6wChObzHxzCKScYPwVx5hx7x7yzqOv8txI5LEwlA+yAr9JZM5s3NNM0AoEm0cykUwxN5N4JwLKi4z6IZOzZObS0AoMhzOxbOIGNQgO/yN5oehnwMopVmVm2fwnj65jWU+FyO+mllDOsAUL5dfPnxqC8oq1yzg/HwkQVDG/e5nfxlZDjUHH+ole5JexIFUI8DxzgZRfNqkiYIMHf6I35Z463A2GChX7svT1QwWpIGB6T7G5/MPXD24OCCo0HMDIpp1/zTY8AEGNiou9OTrng6mgSsPZLJC4oigqNexWZj1YLQEz93iJ1aG1qMxZwrlIPYNwGVNjzl/HQ6hEMMpP7o1Fvw8BdYrNfy+dTafMRaF1BJngT2YO3GN3pm+PgEoDtvjLB+bs/cWloKhVMMqP9AE4P1pyp1POPOuopQdBUdGI3/fHu6LfgT4VNQ16nrm3nJhj7CGX0CGqaiqo2XAWO9k9x0w6Sf6+GQLqV8z2fWTv7x04/cqHn3TQdAioP8io75Pvv/n9F0+dscKw6F1Rv1i4m3xw9EFjjwgAGtTUAlpoOJG8YRh0qwpaa9iaPDcgQARtNizW4QmQgJYHTPE1D4MKWi4Y/hXuChW0PeB2bg8VtN2wI9eCof2CreaE4W9S8fcYAv73BlZQOCBCAwAAUBEAnQEqSABIAD6dQJlJJaOiIS9UDEiwE4lkDbA4gAYjtxcTNHW3V5+CyWcAo/jFnrGdW+y1dL1NB8jf097AnR1/Yr2a/1JUbrYwSBkkAw4T/oOyonFfRf5Ext8m+mQGgNH8jb+1x0tRkPAKbSdP4vwamZTa4BH4XH/NEwmzkkx4iUE86Aryk2Bsv7hN6yHzf8RoAP7NcAs+kLyQ6ojlcPqvFd0kiZzAWIydbr7tPXbhaXHsGRZEvSHGPJyuEPADT4xOWw3x1Uu0P//ccQDRpck9oA0OGasvCAQ0FB8KPBLzt3ZQ5GXBeoZP/b0pgURjNv+8X+wE3c5o0GTusjqfZsS0JYYT60iUvMi7/98fRlEbgI6naDyBR+Jz3GOCSq0uDd21vd8XMvO7NiUs35cONm1bTFiz39ijLgl2/K7K1KD03n+wTYMv6Zjq56Vd/iF59FbGo+bY2X95HcAl6GPwQTv4stRWf15d91d524HsnR89ZEeLkUmRm5+A7SB3zzBeNfMeVibTMNpcvhyHXTBmpJuljb4jOuKLzvlAu4FLCQMSnyaOArRWujFyQrtggn7oJ+bQDwgL3cTQTb/8xL0F6V1/SHTjU+qdK1fE54+abdWb6FfzPvYcyGsKlywx+TVJcNIHx0Trx1ggnm/GI8c9OwsE7CHFOPhvMQHbGl1PmcgwjtsfblZySd6KydYqZN0OhCjYktCKW2vBFEZnXzPeBsAhfuKupoZ3PembMFvAtNKoRiUAhe8afo0T2PyiIj6yya38lP6aH5r0Fx9o/chBmQZ5qZMouWcC/Y3YOCcFfcJ4Bqs+kSdgnr9N/yRFfXJJRV8UdffnJ9tO4MH5eZsiYxu3e8O26GzKuDdfMOD8KohQq0tW3f/2Y4l5a/peP3rR+RPuXmE9xaHrRiOto6mjHsMilYxMjCaAYtQxwNnvZxxzcSggzBsQG+Ufa/VEXcIWKoyUQQstp7bGOswShBdgSFPZzjGQ8wSQGOVXKf4tyyKWz61rGQdJURkfxKdKZ7AYoDziAaxhMQrXOLRxwLWRISCbX/Y8VTKJ3jj/7zpGGcP4abMAS8PsI6EhXbLE5LYG9tFREW68tem4/5caC4J4AAAA" };
   /* Bonbon : le marchand en vend 5 au maximum (par visite), à 3 Daedalux pièce. Soigne les monstres de 3 PV et le Joueur de 10 PV. */
   const BONBON_PRICE = 3, BONBON_STOCK = 5, BONBON_HEAL_MON = 3, BONBON_HEAL_PLAYER = 10;
@@ -26300,7 +26342,10 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     return spellPool().sort(() => Math.random() - 0.5).slice(0, n).map((id) => ({ id, price: SPELL_PRICE_MIN + Math.floor(Math.random() * (SPELL_PRICE_MAX - SPELL_PRICE_MIN + 1)), sold: false }));
   }
   function shopStock(id) {
-    if (!run.shops.has(id)) run.shops.set(id, { larves: LARVE_STOCK, bonbons: BONBON_STOCK, cubes: Array.from({ length: SHOP_CUBES }, rollShopCube), spells: rollShopSpells() });
+    if (!run.shops.has(id)) {
+      const cubes = Array.from({ length: SHOP_CUBES }, rollShopCube);
+      run.shops.set(id, { larves: LARVE_STOCK, bonbons: BONBON_STOCK, cubes, cubePrices: cubes.map((c) => rollCubePrice(CUBES[c].rarity)), spells: rollShopSpells() });
+    }
     return run.shops.get(id);
   }
   function pay(price) { if ((run.daedalux || 0) < price) { shopMsg = 'Pas assez de Daedalux.'; return false; } run.daedalux -= price; return true; }
@@ -26341,7 +26386,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   }
   function buyCube(i) {
     const st = shopStock(run.pos), id = st.cubes[i];
-    if (!id || !pay(CUBE_PRICE[CUBES[id].rarity])) { render(); return; }
+    if (!id || !pay(cubePriceAt(st, i))) { render(); return; }
     st.cubes[i] = null; const eq = giveItem('cube', id);
     shopMsg = CUBES[id].name + ' (' + CUBES[id].rarity + ') acheté : ' + (eq ? 'équipé.' : 'ajouté à l\u2019inventaire.'); render();
   }
@@ -26371,8 +26416,8 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   /* La Forge : 2 exemplaires du même Cube de la même rareté -> 1 exemplaire de la rareté suivante, contre des Daedalux (selon la rareté obtenue).
      Breloques : 2 exemplaires de la même Breloque Novice -> 1 Breloque Expert (dorée). */
   const RARITY_STEPS = [{ r: 'Commun', suffix: '' }, { r: 'Rare', suffix: '_rare' }, { r: 'Épique', suffix: '_epique' }, { r: 'Mythique', suffix: '_mythique' }, { r: 'Exalté', suffix: '_exalte' }];
-  const FORGE_COST = { 'Rare': 5, 'Épique': 10, 'Mythique': 20, 'Exalté': 40 }; // prix en Daedalux de l'amélioration vers cette rareté
-  const FORGE_CHARM_COST = 15; // prix en Daedalux de l'amélioration Novice -> Expert d'une Breloque (à ajuster)
+  const FORGE_COST = { 'Rare': 10, 'Épique': 20, 'Mythique': 30, 'Exalté': 40 }; // prix en Daedalux de l'amélioration vers cette rareté
+  const FORGE_CHARM_COST = 30; // prix en Daedalux de l'amélioration Novice -> Expert d'une Breloque (à ajuster)
   const dataOf = (kind, id) => (kind === 'cube' ? CUBES[id] : kind === 'brew' ? BREWS[id] : BRELOQUES[id]);
   /** Objet amélioré (id) pour un Cube ou une Breloque, ou null s'il n'y a pas d'amélioration. */
   function nextItemId(kind, id) {
@@ -26640,7 +26685,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
     const cubeRows = st.cubes.map((id, i) => {
       if (!id) return h('li', { class: 'dd-inv-item' }, h('div', { class: 'dd-inv-info' }, h('small', null, 'Vendu')));
       const d = CUBES[id];
-      return row(d.src, d.name, [h('small', null, d.rarity), h('ul', null, ...cubeLines(d, 1).map((t) => h('li', null, t)))], CUBE_PRICE[d.rarity], 'Acheter', () => buyCube(i));
+      return row(d.src, d.name, [h('small', null, d.rarity), h('ul', null, ...cubeLines(d, 1).map((t) => h('li', null, t)))], cubePriceAt(st, i), 'Acheter', () => buyCube(i));
     });
     const ov = h('div', { class: 'overlay dlg-overlay', onclick: (e) => { if (e.target === ov) closeShop(); } },
       h('div', { class: 'panel dd-inv', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Marchand' },
