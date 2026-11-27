@@ -9100,7 +9100,7 @@ img.aura-spr { filter: drop-shadow(0 0 2px #fff6cf) drop-shadow(0 0 7px #f6d870c
   /* ---------- Black Friday : réduction sur TOUS les articles de la boutique (boosters + sorts de classe).
    * Pour terminer l'opération : mettre `active: false` (prix, bandeau, badges et prix barrés disparaissent d'un coup).
    * `pct` = pourcentage de réduction. Le prix soldé est arrondi à l'entier (minimum 1). ---------- */
-  FG.SALE = Object.freeze({ active: true, pct: 60, name: 'Black Friday' });
+  FG.SALE = Object.freeze({ active: false, pct: 60, name: 'Black Friday' });
   FG.salePrice = (price) => (FG.SALE.active ? Math.max(1, Math.round(price * (100 - FG.SALE.pct) / 100)) : price);
 
   /* Boosters de la boutique. Le standard suit FG.RARITY ; les spéciaux ont leurs propres taux (% par carte, par rareté),
